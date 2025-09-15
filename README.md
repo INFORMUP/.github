@@ -1,4 +1,4 @@
-# .github
+#  Welcome to InformUp
 
 # Introduction
 The goal of InformUp is to dramatically increase the rate of local civic participation by giving residents the information they need to be informed and then the tools to easily take action on that information. This requires a significant investment in software based tools that not only simplify the collection of civic information and the generation of high quality reporting, but also in tools to distribute that reporting, and most importantly, provide engaging ways for residents to participate in their local government.
