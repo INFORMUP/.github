@@ -1,9 +1,11 @@
 # Engineering Document: Modern Development Pipeline with Claude CLI Integration
 
 ## Table of Contents
+
 - [Introduction: Building a Claude CLI-Powered Development Pipeline](#introduction-building-a-claude-cli-powered-development-pipeline)
 
 **Part I: Getting Started**
+
 - [1. Automated Development Environment](#1-automated-development-environment)
   - [1.1 Mac Setup Stack](#11-mac-setup-stack)
   - [1.2 Docker Compose](#12-docker-compose)
@@ -11,6 +13,7 @@
   - [1.4 Dotfiles Management](#14-dotfiles-management)
 
 **Part II: Planning & Design**
+
 - [2. Feature Planning with Claude CLI](#2-feature-planning-with-claude-cli)
   - [2.1 Interactive Design Reviews](#21-interactive-design-reviews)
   - [2.2 Architecture Impact Analysis](#22-architecture-impact-analysis)
@@ -18,6 +21,7 @@
   - [2.4 Automated Background Tasks](#24-automated-background-tasks)
 
 **Part III: Development Workflow**
+
 - [3. AI-Powered Testing](#3-ai-powered-testing)
   - [3.1 Testing Philosophy](#31-testing-philosophy)
   - [3.2 Claude-Generated Test Coverage](#32-claude-generated-test-coverage)
@@ -30,12 +34,14 @@
   - [4.3 Automated Documentation](#43-automated-documentation)
 
 **Part IV: CI/CD Pipeline**
+
 - [5. Local-First CI Strategy](#5-local-first-ci-strategy)
   - [5.1 Pre-push Validation](#51-pre-push-validation)
   - [5.2 PR Automation](#52-pr-automation)
   - [5.3 Branch Protection](#53-branch-protection)
 
 **Part V: Deployment & Infrastructure**
+
 - [6. Infrastructure Reviews](#6-infrastructure-reviews)
   - [6.1 IaC Validation](#61-iac-validation)
   - [6.2 Security Configuration](#62-security-configuration)
@@ -45,6 +51,7 @@
   - [7.2 Release Patterns](#72-release-patterns)
 
 **Part VI: Operations & Monitoring**
+
 - [8. Production Observability](#8-production-observability)
   - [8.1 Log Analysis](#81-log-analysis)
   - [8.2 Incident Response](#82-incident-response)
@@ -60,6 +67,7 @@
 **Goal**: Create a development pipeline where Claude CLI acts as your AI pair programmer at every stage - from design to deployment. This guide provides a complete blueprint for integrating Claude into your local development workflow.
 
 **Key Principles**:
+
 - **Local-first**: Every automation runs on your machine using Claude CLI
 - **Interactive by default**: Design and security reviews use interactive mode for real-time collaboration
 - **Background automation**: Tests and docs generate automatically without interrupting flow
@@ -67,6 +75,7 @@
 - **Subscription-based**: Uses your Claude subscription, no per-token API costs
 
 **Key Outcomes**:
+
 - AI pair programming at every development stage
 - Comprehensive test coverage generated automatically
 - Security and architecture reviews before code reaches production
@@ -99,6 +108,7 @@ brew bundle install  # Uses Brewfile for consistency
 ```
 
 **Essential Brewfile additions**:
+
 ```ruby
 # Development essentials
 brew "fnm"          # Fast Node.js version manager
@@ -117,13 +127,13 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  
+
   # Optional: Claude review service for team sharing
   claude-reviews:
     image: node:20-alpine
     volumes:
       - .:/app
-      - ~/.claude:/root/.claude  # Share auth
+      - ~/.claude:/root/.claude # Share auth
     command: |
       sh -c "npm install -g @claude-ai/claude-code && 
              claude code watch --config /app/.claude-config.json"
@@ -132,13 +142,14 @@ services:
 ### 1.3 VS Code Configuration
 
 **Claude-optimized VS Code settings**:
+
 ```json
 // .vscode/settings.json
 {
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "eslint.autoFixOnSave": true,
-  
+
   // Claude integration
   "terminal.integrated.env.osx": {
     "CLAUDE_AUTO_REVIEW": "true"
@@ -157,6 +168,7 @@ services:
 ```
 
 **VS Code Tasks for Claude**:
+
 ```json
 // .vscode/tasks.json
 {
@@ -204,6 +216,7 @@ services:
 ```
 
 **Keyboard Shortcuts**:
+
 ```json
 // .vscode/keybindings.json
 [
@@ -223,6 +236,7 @@ services:
 ### 1.4 Dotfiles Management
 
 **Shell integration for Claude**:
+
 ```bash
 # ~/.zshrc or ~/.bashrc
 
@@ -280,6 +294,7 @@ EOF
 ### 2.1 Interactive Design Reviews
 
 **Starting a new feature**:
+
 ```bash
 # Create RFC and get interactive feedback
 cat > docs/rfcs/new-feature.md << 'EOF'
@@ -301,25 +316,31 @@ claude code review --file docs/rfcs/new-feature.md --interactive
 ```
 
 **Design Review Workflow**:
+
 ```javascript
 #!/usr/bin/env node
 // scripts/design-review.js
 
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const chalk = require('chalk');
+const { spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const chalk = require("chalk");
 
 class DesignReviewer {
   async reviewFeature(featurePath) {
-    console.log(chalk.blue('🎨 Starting interactive design review...'));
-    
+    console.log(chalk.blue("🎨 Starting interactive design review..."));
+
     // Launch interactive Claude session
-    const claude = spawn('claude', [
-      'code', 'review',
-      '--file', featurePath,
-      '--interactive',
-      '--instructions', `You are a senior architect reviewing a feature design.
+    const claude = spawn(
+      "claude",
+      [
+        "code",
+        "review",
+        "--file",
+        featurePath,
+        "--interactive",
+        "--instructions",
+        `You are a senior architect reviewing a feature design.
         Focus on:
         1. Completeness of requirements
         2. Edge cases and error handling
@@ -329,17 +350,19 @@ class DesignReviewer {
         6. Database schema impacts
         7. Testing strategy
         
-        Ask clarifying questions and suggest improvements.`
-    ], {
-      stdio: 'inherit',
-      shell: true
-    });
-    
+        Ask clarifying questions and suggest improvements.`,
+      ],
+      {
+        stdio: "inherit",
+        shell: true,
+      },
+    );
+
     return new Promise((resolve, reject) => {
-      claude.on('close', (code) => {
+      claude.on("close", (code) => {
         if (code === 0) {
           this.saveReviewNotes(featurePath);
-          console.log(chalk.green('✅ Design review completed'));
+          console.log(chalk.green("✅ Design review completed"));
           resolve();
         } else {
           reject(new Error(`Review failed with code ${code}`));
@@ -347,26 +370,29 @@ class DesignReviewer {
       });
     });
   }
-  
+
   saveReviewNotes(featurePath) {
-    const reviewPath = featurePath.replace('.md', '-review.md');
+    const reviewPath = featurePath.replace(".md", "-review.md");
     const timestamp = new Date().toISOString();
-    
+
     // Append review metadata
-    fs.appendFileSync(reviewPath, `
+    fs.appendFileSync(
+      reviewPath,
+      `
 ---
 Review completed: ${timestamp}
 Reviewer: Claude CLI
 Status: Reviewed
 ---
-    `);
+    `,
+    );
   }
 }
 
 // Usage
 if (require.main === module) {
   const reviewer = new DesignReviewer();
-  const featurePath = process.argv[2] || 'docs/rfcs/current.md';
+  const featurePath = process.argv[2] || "docs/rfcs/current.md";
   reviewer.reviewFeature(featurePath).catch(console.error);
 }
 ```
@@ -374,6 +400,7 @@ if (require.main === module) {
 ### 2.2 Architecture Impact Analysis
 
 **Claude-powered architecture reviews**:
+
 ```bash
 # Analyze architecture impact of changes
 claude code review --template architecture \
@@ -388,33 +415,34 @@ claude code docs generate --template adr \
 ```
 
 **Automated Architecture Checks**:
+
 ```javascript
 // scripts/architecture-check.js
-const { execSync } = require('child_process');
-const fs = require('fs');
+const { execSync } = require("child_process");
+const fs = require("fs");
 
 class ArchitectureGuard {
   constructor() {
     this.rules = this.loadArchitectureRules();
   }
-  
+
   loadArchitectureRules() {
     return {
       layers: {
-        'src/controllers': ['src/services', 'src/models'],
-        'src/services': ['src/models', 'src/utils'],
-        'src/models': ['src/utils']
+        "src/controllers": ["src/services", "src/models"],
+        "src/services": ["src/models", "src/utils"],
+        "src/models": ["src/utils"],
       },
       forbidden: {
-        'src/models': ['express', 'http'],
-        'src/utils': ['src/controllers', 'src/services']
-      }
+        "src/models": ["express", "http"],
+        "src/utils": ["src/controllers", "src/services"],
+      },
     };
   }
-  
+
   async checkArchitecture() {
-    console.log('🏗️ Running architecture conformance check...');
-    
+    console.log("🏗️ Running architecture conformance check...");
+
     // Use Claude to analyze architecture
     const analysis = execSync(
       `claude code review --template architecture \
@@ -426,30 +454,32 @@ class ArchitectureGuard {
           4. Proper separation of concerns
           5. SOLID principle violations
           Output findings as JSON"`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
-    
+
     const findings = JSON.parse(analysis);
-    
+
     if (findings.violations.length > 0) {
-      console.log('❌ Architecture violations found:');
-      findings.violations.forEach(v => {
+      console.log("❌ Architecture violations found:");
+      findings.violations.forEach((v) => {
         console.log(`  - ${v.type}: ${v.description}`);
         console.log(`    File: ${v.file}`);
         console.log(`    Suggestion: ${v.suggestion}`);
       });
-      
+
       // Offer to start interactive session for complex issues
-      if (findings.severity === 'high') {
-        console.log('\n💡 Starting interactive session to discuss solutions...');
-        execSync('claude code review --interactive --context src/', {
-          stdio: 'inherit'
+      if (findings.severity === "high") {
+        console.log(
+          "\n💡 Starting interactive session to discuss solutions...",
+        );
+        execSync("claude code review --interactive --context src/", {
+          stdio: "inherit",
         });
       }
     } else {
-      console.log('✅ Architecture check passed');
+      console.log("✅ Architecture check passed");
     }
-    
+
     return findings;
   }
 }
@@ -458,6 +488,7 @@ class ArchitectureGuard {
 ### 2.3 Security Threat Modeling
 
 **Interactive security reviews**:
+
 ```bash
 # STRIDE threat modeling session
 claude code review --template security \
@@ -478,71 +509,82 @@ claude code review --template security \
 ```
 
 **Security Review Automation**:
+
 ```javascript
 // scripts/security-review.js
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class SecurityReviewer {
   async reviewSecurity(targetPath) {
-    console.log(chalk.red('🔒 Starting security review...'));
-    
+    console.log(chalk.red("🔒 Starting security review..."));
+
     // Run comprehensive security analysis
     const stages = [
       {
-        name: 'Authentication',
-        command: 'claude code review --template security --file src/auth/ --quick'
+        name: "Authentication",
+        command:
+          "claude code review --template security --file src/auth/ --quick",
       },
       {
-        name: 'Authorization',
-        command: 'claude code review --template security --file src/middleware/auth.js --quick'
+        name: "Authorization",
+        command:
+          "claude code review --template security --file src/middleware/auth.js --quick",
       },
       {
-        name: 'Input Validation',
-        command: 'claude code review --template security --file src/validators/ --quick'
+        name: "Input Validation",
+        command:
+          "claude code review --template security --file src/validators/ --quick",
       },
       {
-        name: 'SQL Injection',
-        command: 'claude code review --template security --context src/ --instructions "Check for SQL injection vulnerabilities"'
+        name: "SQL Injection",
+        command:
+          'claude code review --template security --context src/ --instructions "Check for SQL injection vulnerabilities"',
       },
       {
-        name: 'XSS Prevention',
-        command: 'claude code review --template security --file src/views/ --instructions "Check for XSS vulnerabilities"'
-      }
+        name: "XSS Prevention",
+        command:
+          'claude code review --template security --file src/views/ --instructions "Check for XSS vulnerabilities"',
+      },
     ];
-    
+
     const findings = [];
-    
+
     for (const stage of stages) {
       console.log(`\n📋 Checking ${stage.name}...`);
       try {
-        const result = execSync(stage.command, { encoding: 'utf8' });
-        
-        if (result.includes('CRITICAL') || result.includes('HIGH')) {
+        const result = execSync(stage.command, { encoding: "utf8" });
+
+        if (result.includes("CRITICAL") || result.includes("HIGH")) {
           findings.push({
             stage: stage.name,
-            severity: 'critical',
-            details: result
+            severity: "critical",
+            details: result,
           });
           console.log(chalk.red(`❌ Critical issues found in ${stage.name}`));
         } else {
           console.log(chalk.green(`✅ ${stage.name} passed`));
         }
       } catch (error) {
-        console.error(chalk.red(`Error checking ${stage.name}: ${error.message}`));
+        console.error(
+          chalk.red(`Error checking ${stage.name}: ${error.message}`),
+        );
       }
     }
-    
+
     // If critical issues found, start interactive session
-    if (findings.some(f => f.severity === 'critical')) {
-      console.log(chalk.yellow('\n⚠️ Critical security issues detected'));
-      console.log('Starting interactive security review session...\n');
-      
-      execSync('claude code review --template security --interactive --context src/', {
-        stdio: 'inherit'
-      });
+    if (findings.some((f) => f.severity === "critical")) {
+      console.log(chalk.yellow("\n⚠️ Critical security issues detected"));
+      console.log("Starting interactive security review session...\n");
+
+      execSync(
+        "claude code review --template security --interactive --context src/",
+        {
+          stdio: "inherit",
+        },
+      );
     }
-    
+
     return findings;
   }
 }
@@ -551,6 +593,7 @@ class SecurityReviewer {
 ### 2.4 Automated Background Tasks
 
 **Configure background automation**:
+
 ```javascript
 // scripts/claude-automation.js
 const { execSync, spawn } = require('child_process');
@@ -562,7 +605,7 @@ class ClaudeAutomation {
   constructor() {
     this.config = this.loadConfig();
   }
-  
+
   loadConfig() {
     const configPath = '.claude-config.json';
     const defaults = {
@@ -579,21 +622,21 @@ class ClaudeAutomation {
         onPush': ['security']
       }
     };
-    
+
     if (fs.existsSync(configPath)) {
       return { ...defaults, ...JSON.parse(fs.readFileSync(configPath, 'utf8')) };
     }
     return defaults;
   }
-  
+
   startWatchers() {
     console.log(chalk.blue('👀 Starting Claude file watchers...'));
-    
+
     const watcher = chokidar.watch('src/**/*.{js,jsx,ts,tsx}', {
       ignored: /(^|[\/\\])\../,
       persistent: true
     });
-    
+
     // Debounce to avoid multiple triggers
     const debounce = (func, wait) => {
       let timeout;
@@ -602,27 +645,27 @@ class ClaudeAutomation {
         timeout = setTimeout(() => func.apply(this, args), wait);
       };
     };
-    
+
     watcher.on('change', debounce(async (filepath) => {
       console.log(chalk.gray(`File changed: ${filepath}`));
-      
+
       // Auto-generate/update documentation
       if (this.config.autoTriggers.onSave.includes('docs')) {
         this.runBackground('docs', filepath);
       }
-      
+
       // Auto-generate tests for new files
       if (!fs.existsSync(filepath.replace('.js', '.test.js'))) {
         this.runBackground('tests', filepath);
       }
     }, 2000));
-    
+
     console.log(chalk.green('✅ Watchers active'));
   }
-  
+
   runBackground(type, filepath) {
     console.log(chalk.gray(`⚙️ Running ${type} generation in background...`));
-    
+
     let command;
     switch (type) {
       case 'tests':
@@ -634,13 +677,13 @@ class ClaudeAutomation {
       default:
         return;
     }
-    
+
     // Run in background without blocking
     spawn('sh', ['-c', command], {
       detached: true,
       stdio: 'ignore'
     }).unref();
-    
+
     console.log(chalk.gray(`✅ ${type} generation started`));
   }
 }
@@ -669,6 +712,7 @@ if (require.main === module) {
 ### 3.2 Claude-Generated Test Coverage
 
 **Generate tests for a single file**:
+
 ```bash
 # Generate comprehensive tests
 claude code test generate --file src/services/userService.js
@@ -684,32 +728,33 @@ claude code test generate --file docs/user-stories.md \
 ```
 
 **Batch test generation**:
+
 ```javascript
 // scripts/generate-all-tests.js
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const glob = require("glob");
+const chalk = require("chalk");
 
 class TestGenerator {
   async generateMissingTests() {
-    const files = glob.sync('src/**/*.{js,jsx}', {
-      ignore: ['**/*.test.js', '**/*.spec.js']
+    const files = glob.sync("src/**/*.{js,jsx}", {
+      ignore: ["**/*.test.js", "**/*.spec.js"],
     });
-    
+
     let generated = 0;
-    
+
     for (const file of files) {
-      const testFile = file.replace(/\.jsx?$/, '.test.js');
-      
+      const testFile = file.replace(/\.jsx?$/, ".test.js");
+
       if (!fs.existsSync(testFile)) {
         console.log(chalk.yellow(`📝 Generating tests for ${file}...`));
-        
+
         try {
           execSync(
             `claude code test generate --file ${file} --output ${testFile}`,
-            { stdio: 'pipe' }
+            { stdio: "pipe" },
           );
           generated++;
           console.log(chalk.green(`✅ Created ${testFile}`));
@@ -718,42 +763,44 @@ class TestGenerator {
         }
       }
     }
-    
+
     console.log(chalk.blue(`\n📊 Generated ${generated} test files`));
-    
+
     // Run coverage check
-    console.log(chalk.blue('\n📊 Running coverage analysis...'));
-    execSync('npm test -- --coverage', { stdio: 'inherit' });
+    console.log(chalk.blue("\n📊 Running coverage analysis..."));
+    execSync("npm test -- --coverage", { stdio: "inherit" });
   }
-  
+
   async improveTestCoverage(threshold = 80) {
     console.log(chalk.blue(`🎯 Improving test coverage to ${threshold}%...`));
-    
+
     // Get coverage report
     const coverage = JSON.parse(
-      fs.readFileSync('coverage/coverage-summary.json', 'utf8')
+      fs.readFileSync("coverage/coverage-summary.json", "utf8"),
     );
-    
+
     // Find files below threshold
     const lowCoverage = Object.entries(coverage)
       .filter(([file, data]) => data.lines.pct < threshold)
       .map(([file, data]) => ({
         file,
         coverage: data.lines.pct,
-        uncovered: data.lines.uncovered
+        uncovered: data.lines.uncovered,
       }));
-    
+
     for (const item of lowCoverage) {
-      console.log(chalk.yellow(
-        `\n📝 Improving coverage for ${item.file} (current: ${item.coverage}%)`
-      ));
-      
+      console.log(
+        chalk.yellow(
+          `\n📝 Improving coverage for ${item.file} (current: ${item.coverage}%)`,
+        ),
+      );
+
       // Use Claude to analyze uncovered lines and generate tests
       execSync(
         `claude code test improve --file ${item.file} \
           --coverage-report coverage/lcov.info \
           --target ${threshold}`,
-        { stdio: 'inherit' }
+        { stdio: "inherit" },
       );
     }
   }
@@ -761,7 +808,8 @@ class TestGenerator {
 
 if (require.main === module) {
   const generator = new TestGenerator();
-  generator.generateMissingTests()
+  generator
+    .generateMissingTests()
     .then(() => generator.improveTestCoverage())
     .catch(console.error);
 }
@@ -771,32 +819,33 @@ if (require.main === module) {
 
 ```javascript
 // vitest.config.js
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: './tests/setup.js',
+    environment: "jsdom",
+    setupFiles: "./tests/setup.js",
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
       thresholds: {
         statements: 80,
         branches: 80,
         functions: 80,
-        lines: 80
-      }
+        lines: 80,
+      },
     },
-    pool: 'threads',
+    pool: "threads",
     fileParallelism: true,
     // Custom reporter that triggers Claude on failures
-    reporters: ['default', './tests/claude-reporter.js']
-  }
+    reporters: ["default", "./tests/claude-reporter.js"],
+  },
 });
 ```
 
 **Claude test failure analyzer**:
+
 ```javascript
 // tests/claude-reporter.js
 export default class ClaudeReporter {
@@ -806,10 +855,10 @@ export default class ClaudeReporter {
       `claude code analyze --failure "${errors[0].message}" \
         --file ${test.file} \
         --context ${test.code}`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
-    
-    console.log('🤖 Claude Analysis:', analysis);
+
+    console.log("🤖 Claude Analysis:", analysis);
   }
 }
 ```
@@ -817,6 +866,7 @@ export default class ClaudeReporter {
 ### 3.4 React Testing
 
 **Component test generation**:
+
 ```bash
 # Generate React Testing Library tests
 claude code test generate --file src/components/UserProfile.jsx \
@@ -827,6 +877,7 @@ claude code test generate --file src/components/UserProfile.jsx \
 ### 3.5 E2E with Playwright
 
 **Generate E2E tests from user stories**:
+
 ```bash
 # Convert user stories to E2E tests
 claude code test generate --file docs/user-stories/authentication.md \
@@ -843,6 +894,7 @@ claude code test generate --file docs/user-stories/authentication.md \
 ### 4.1 Git Hooks with Claude
 
 **Install comprehensive git hooks**:
+
 ```bash
 #!/bin/bash
 # scripts/install-hooks.sh
@@ -902,6 +954,7 @@ echo "✅ Git hooks installed"
 ### 4.2 Pre-commit Reviews
 
 **Lint-staged configuration with Claude**:
+
 ```json
 {
   "lint-staged": {
@@ -910,12 +963,8 @@ echo "✅ Git hooks installed"
       "eslint --fix --max-warnings=0",
       "claude code review --file"
     ],
-    "*.test.{js,jsx,ts,tsx}": [
-      "claude code test review --file"
-    ],
-    "*.md": [
-      "claude code docs review --file"
-    ]
+    "*.test.{js,jsx,ts,tsx}": ["claude code test review --file"],
+    "*.md": ["claude code docs review --file"]
   }
 }
 ```
@@ -923,73 +972,86 @@ echo "✅ Git hooks installed"
 ### 4.3 Automated Documentation
 
 **Documentation generation workflow**:
+
 ```javascript
 // scripts/doc-generator.js
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const chalk = require("chalk");
 
 class DocGenerator {
   async generateProjectDocs() {
-    console.log(chalk.blue('📚 Generating project documentation...'));
-    
+    console.log(chalk.blue("📚 Generating project documentation..."));
+
     const tasks = [
       {
-        name: 'README',
-        command: 'claude code docs generate --template readme --context . --output README.md'
+        name: "README",
+        command:
+          "claude code docs generate --template readme --context . --output README.md",
       },
       {
-        name: 'API Documentation',
-        command: 'claude code docs generate --template api --context src/api/ --output docs/API.md'
+        name: "API Documentation",
+        command:
+          "claude code docs generate --template api --context src/api/ --output docs/API.md",
       },
       {
-        name: 'Architecture Guide',
-        command: 'claude code docs generate --template architecture --context src/ --output docs/ARCHITECTURE.md'
+        name: "Architecture Guide",
+        command:
+          "claude code docs generate --template architecture --context src/ --output docs/ARCHITECTURE.md",
       },
       {
-        name: 'Contributing Guide',
-        command: 'claude code docs generate --template contributing --output CONTRIBUTING.md'
+        name: "Contributing Guide",
+        command:
+          "claude code docs generate --template contributing --output CONTRIBUTING.md",
       },
       {
-        name: 'Component Library',
-        command: 'claude code docs generate --template components --context src/components/ --output docs/COMPONENTS.md'
-      }
+        name: "Component Library",
+        command:
+          "claude code docs generate --template components --context src/components/ --output docs/COMPONENTS.md",
+      },
     ];
-    
+
     for (const task of tasks) {
       console.log(chalk.yellow(`📝 Generating ${task.name}...`));
       try {
-        execSync(task.command, { stdio: 'pipe' });
+        execSync(task.command, { stdio: "pipe" });
         console.log(chalk.green(`✅ ${task.name} generated`));
       } catch (error) {
         console.error(chalk.red(`❌ Failed to generate ${task.name}`));
       }
     }
   }
-  
+
   async updateDocsOnChange(filepath) {
     // Determine which docs need updating
     const updates = [];
-    
-    if (filepath.includes('api/')) {
-      updates.push('claude code docs update --file docs/API.md --context ' + filepath);
+
+    if (filepath.includes("api/")) {
+      updates.push(
+        "claude code docs update --file docs/API.md --context " + filepath,
+      );
     }
-    
-    if (filepath.includes('components/')) {
-      updates.push('claude code docs update --file docs/COMPONENTS.md --context ' + filepath);
+
+    if (filepath.includes("components/")) {
+      updates.push(
+        "claude code docs update --file docs/COMPONENTS.md --context " +
+          filepath,
+      );
     }
-    
+
     // Always update README for public API changes
-    if (filepath.includes('index.js') || filepath.includes('public')) {
-      updates.push('claude code docs update --file README.md --context ' + filepath);
+    if (filepath.includes("index.js") || filepath.includes("public")) {
+      updates.push(
+        "claude code docs update --file README.md --context " + filepath,
+      );
     }
-    
+
     // Run updates in background
-    updates.forEach(cmd => {
-      spawn('sh', ['-c', cmd], {
+    updates.forEach((cmd) => {
+      spawn("sh", ["-c", cmd], {
         detached: true,
-        stdio: 'ignore'
+        stdio: "ignore",
       }).unref();
     });
   }
@@ -1007,68 +1069,85 @@ class DocGenerator {
 ### 5.1 Pre-push Validation
 
 **Local CI script that mirrors GitHub Actions**:
+
 ```javascript
 #!/usr/bin/env node
 // scripts/local-ci.js
 
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class LocalCI {
   constructor() {
     this.checks = [
-      { name: 'Linting', command: 'npm run lint' },
-      { name: 'Type Checking', command: 'npm run type-check' },
-      { name: 'Unit Tests', command: 'npm test' },
-      { name: 'Claude Security Review', command: 'claude code review --diff --template security --quick' },
-      { name: 'Claude Architecture Review', command: 'claude code review --diff --template architecture --quick' },
-      { name: 'Build', command: 'npm run build' }
+      { name: "Linting", command: "npm run lint" },
+      { name: "Type Checking", command: "npm run type-check" },
+      { name: "Unit Tests", command: "npm test" },
+      {
+        name: "Claude Security Review",
+        command: "claude code review --diff --template security --quick",
+      },
+      {
+        name: "Claude Architecture Review",
+        command: "claude code review --diff --template architecture --quick",
+      },
+      { name: "Build", command: "npm run build" },
     ];
   }
-  
+
   async runAllChecks() {
-    console.log(chalk.blue('🚀 Running local CI checks...\n'));
-    
+    console.log(chalk.blue("🚀 Running local CI checks...\n"));
+
     const results = [];
-    
+
     for (const check of this.checks) {
       process.stdout.write(chalk.yellow(`⏳ ${check.name}...`));
-      
+
       try {
-        execSync(check.command, { stdio: 'pipe' });
-        console.log(chalk.green(' ✅'));
+        execSync(check.command, { stdio: "pipe" });
+        console.log(chalk.green(" ✅"));
         results.push({ check: check.name, passed: true });
       } catch (error) {
-        console.log(chalk.red(' ❌'));
-        results.push({ check: check.name, passed: false, error: error.message });
-        
+        console.log(chalk.red(" ❌"));
+        results.push({
+          check: check.name,
+          passed: false,
+          error: error.message,
+        });
+
         // Offer Claude help for failures
-        if (check.name.includes('Claude')) {
-          console.log(chalk.yellow('\n💡 Starting interactive session to resolve issues...\n'));
-          execSync('claude code review --interactive --diff', { stdio: 'inherit' });
+        if (check.name.includes("Claude")) {
+          console.log(
+            chalk.yellow(
+              "\n💡 Starting interactive session to resolve issues...\n",
+            ),
+          );
+          execSync("claude code review --interactive --diff", {
+            stdio: "inherit",
+          });
         }
       }
     }
-    
+
     // Summary
-    const passed = results.filter(r => r.passed).length;
-    const failed = results.filter(r => !r.passed).length;
-    
-    console.log(chalk.blue('\n📊 Summary:'));
+    const passed = results.filter((r) => r.passed).length;
+    const failed = results.filter((r) => !r.passed).length;
+
+    console.log(chalk.blue("\n📊 Summary:"));
     console.log(chalk.green(`  ✅ Passed: ${passed}`));
     if (failed > 0) {
       console.log(chalk.red(`  ❌ Failed: ${failed}`));
       process.exit(1);
     }
-    
-    console.log(chalk.green('\n🎉 All checks passed! Ready to push.'));
+
+    console.log(chalk.green("\n🎉 All checks passed! Ready to push."));
   }
 }
 
 if (require.main === module) {
   const ci = new LocalCI();
-  ci.runAllChecks().catch(error => {
-    console.error(chalk.red('CI failed:', error.message));
+  ci.runAllChecks().catch((error) => {
+    console.error(chalk.red("CI failed:", error.message));
     process.exit(1);
   });
 }
@@ -1077,133 +1156,142 @@ if (require.main === module) {
 ### 5.2 PR Automation
 
 **Create PRs with Claude-generated descriptions**:
+
 ```javascript
 #!/usr/bin/env node
 // scripts/create-pr.js
 
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class PRCreator {
   async createPR(options = {}) {
-    console.log(chalk.blue('📝 Creating pull request...'));
-    
+    console.log(chalk.blue("📝 Creating pull request..."));
+
     // Generate PR description with Claude
     const description = execSync(
-      'claude code review --diff origin/main...HEAD --template pr-description',
-      { encoding: 'utf8' }
+      "claude code review --diff origin/main...HEAD --template pr-description",
+      { encoding: "utf8" },
     );
-    
+
     // Generate PR title
     const title = execSync(
-      'claude code review --diff origin/main...HEAD --template pr-title',
-      { encoding: 'utf8' }
+      "claude code review --diff origin/main...HEAD --template pr-title",
+      { encoding: "utf8" },
     ).trim();
-    
+
     // Run comprehensive local checks
     if (!options.skipChecks) {
-      console.log(chalk.blue('\n🔍 Running pre-PR validations...'));
-      execSync('npm run local-ci', { stdio: 'inherit' });
+      console.log(chalk.blue("\n🔍 Running pre-PR validations..."));
+      execSync("npm run local-ci", { stdio: "inherit" });
     }
-    
+
     // Create PR using GitHub CLI
     const prUrl = execSync(
       `gh pr create --title "${title}" --body "${description}"`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     ).trim();
-    
+
     console.log(chalk.green(`\n✅ PR created: ${prUrl}`));
-    
+
     // Optional: Run additional Claude reviews and post as comments
     if (options.comprehensive) {
-      console.log(chalk.blue('\n🤖 Running comprehensive Claude reviews...'));
-      
+      console.log(chalk.blue("\n🤖 Running comprehensive Claude reviews..."));
+
       const prNumber = prUrl.match(/\/(\d+)$/)[1];
-      
+
       // Post architecture review
       const archReview = execSync(
-        'claude code review --diff origin/main...HEAD --template architecture',
-        { encoding: 'utf8' }
+        "claude code review --diff origin/main...HEAD --template architecture",
+        { encoding: "utf8" },
       );
       execSync(`gh pr comment ${prNumber} --body "${archReview}"`);
-      
+
       // Post security review
       const secReview = execSync(
-        'claude code review --diff origin/main...HEAD --template security',
-        { encoding: 'utf8' }
+        "claude code review --diff origin/main...HEAD --template security",
+        { encoding: "utf8" },
       );
       execSync(`gh pr comment ${prNumber} --body "${secReview}"`);
-      
-      console.log(chalk.green('✅ Reviews posted to PR'));
+
+      console.log(chalk.green("✅ Reviews posted to PR"));
     }
-    
+
     return prUrl;
   }
 }
 
 if (require.main === module) {
   const creator = new PRCreator();
-  creator.createPR({
-    comprehensive: process.argv.includes('--comprehensive'),
-    skipChecks: process.argv.includes('--skip-checks')
-  }).catch(console.error);
+  creator
+    .createPR({
+      comprehensive: process.argv.includes("--comprehensive"),
+      skipChecks: process.argv.includes("--skip-checks"),
+    })
+    .catch(console.error);
 }
 ```
 
 ### 5.3 Branch Protection
 
 **Pre-merge validation script**:
+
 ```javascript
 // scripts/pre-merge.js
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class PreMergeValidator {
-  async validate(targetBranch = 'main') {
+  async validate(targetBranch = "main") {
     console.log(chalk.blue(`🔍 Validating merge to ${targetBranch}...`));
-    
+
     const validations = [
       {
-        name: 'Breaking Changes',
-        command: `claude code review --diff origin/${targetBranch}...HEAD --check breaking-changes`
+        name: "Breaking Changes",
+        command: `claude code review --diff origin/${targetBranch}...HEAD --check breaking-changes`,
       },
       {
-        name: 'Migration Required',
-        command: `claude code review --diff origin/${targetBranch}...HEAD --check migrations`
+        name: "Migration Required",
+        command: `claude code review --diff origin/${targetBranch}...HEAD --check migrations`,
       },
       {
-        name: 'Documentation Updated',
-        command: `claude code review --diff origin/${targetBranch}...HEAD --check docs-updated`
+        name: "Documentation Updated",
+        command: `claude code review --diff origin/${targetBranch}...HEAD --check docs-updated`,
       },
       {
-        name: 'Test Coverage',
-        command: 'npm test -- --coverage --coverageThreshold=\'{"global":{"lines":80}}\''
-      }
+        name: "Test Coverage",
+        command:
+          'npm test -- --coverage --coverageThreshold=\'{"global":{"lines":80}}\'',
+      },
     ];
-    
+
     for (const validation of validations) {
       console.log(chalk.yellow(`Checking ${validation.name}...`));
-      
+
       try {
-        const result = execSync(validation.command, { encoding: 'utf8' });
+        const result = execSync(validation.command, { encoding: "utf8" });
         console.log(chalk.green(`✅ ${validation.name} passed`));
       } catch (error) {
         console.log(chalk.red(`❌ ${validation.name} failed`));
-        
+
         // Start interactive session for critical failures
-        if (validation.name === 'Breaking Changes') {
-          console.log(chalk.yellow('\n⚠️ Breaking changes detected. Starting migration guide generation...'));
+        if (validation.name === "Breaking Changes") {
+          console.log(
+            chalk.yellow(
+              "\n⚠️ Breaking changes detected. Starting migration guide generation...",
+            ),
+          );
           execSync(
-            'claude code docs generate --template migration-guide --diff origin/main...HEAD --interactive',
-            { stdio: 'inherit' }
+            "claude code docs generate --template migration-guide --diff origin/main...HEAD --interactive",
+            { stdio: "inherit" },
           );
         }
-        
+
         throw error;
       }
     }
-    
-    console.log(chalk.green('\n✅ All pre-merge validations passed'));
+
+    console.log(chalk.green("\n✅ All pre-merge validations passed"));
   }
 }
 ```
@@ -1219,6 +1307,7 @@ class PreMergeValidator {
 ### 6.1 IaC Validation
 
 **Review Terraform/CDK changes**:
+
 ```bash
 # Review Terraform changes
 claude code review --file terraform/ --template infrastructure
@@ -1239,51 +1328,59 @@ claude code review --file terraform/ --template security \
 ### 6.2 Security Configuration
 
 **Infrastructure security scanner**:
+
 ```javascript
 // scripts/infra-security.js
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class InfraSecurityScanner {
   async scan() {
-    console.log(chalk.blue('🔒 Scanning infrastructure for security issues...'));
-    
+    console.log(
+      chalk.blue("🔒 Scanning infrastructure for security issues..."),
+    );
+
     const scans = [
       {
-        name: 'AWS Security Groups',
-        command: 'claude code review --file terraform/security_groups.tf --template security'
+        name: "AWS Security Groups",
+        command:
+          "claude code review --file terraform/security_groups.tf --template security",
       },
       {
-        name: 'IAM Policies',
-        command: 'claude code review --file terraform/iam.tf --check least-privilege'
+        name: "IAM Policies",
+        command:
+          "claude code review --file terraform/iam.tf --check least-privilege",
       },
       {
-        name: 'S3 Buckets',
-        command: 'claude code review --file terraform/s3.tf --check public-access'
+        name: "S3 Buckets",
+        command:
+          "claude code review --file terraform/s3.tf --check public-access",
       },
       {
-        name: 'RDS Configuration',
-        command: 'claude code review --file terraform/rds.tf --check encryption'
+        name: "RDS Configuration",
+        command:
+          "claude code review --file terraform/rds.tf --check encryption",
       },
       {
-        name: 'Secrets Management',
-        command: 'claude code review --file terraform/ --check hardcoded-secrets'
-      }
+        name: "Secrets Management",
+        command:
+          "claude code review --file terraform/ --check hardcoded-secrets",
+      },
     ];
-    
+
     const issues = [];
-    
+
     for (const scan of scans) {
       console.log(chalk.yellow(`\nScanning ${scan.name}...`));
-      
+
       try {
-        const result = execSync(scan.command, { encoding: 'utf8' });
-        
-        if (result.includes('CRITICAL') || result.includes('HIGH')) {
+        const result = execSync(scan.command, { encoding: "utf8" });
+
+        if (result.includes("CRITICAL") || result.includes("HIGH")) {
           issues.push({
             area: scan.name,
-            severity: 'high',
-            details: result
+            severity: "high",
+            details: result,
           });
           console.log(chalk.red(`❌ Issues found in ${scan.name}`));
         } else {
@@ -1293,16 +1390,21 @@ class InfraSecurityScanner {
         console.error(chalk.red(`Failed to scan ${scan.name}`));
       }
     }
-    
+
     if (issues.length > 0) {
-      console.log(chalk.red('\n⚠️ Security issues found in infrastructure'));
-      console.log(chalk.yellow('Starting interactive remediation session...\n'));
-      
-      execSync('claude code review --file terraform/ --template security --interactive', {
-        stdio: 'inherit'
-      });
+      console.log(chalk.red("\n⚠️ Security issues found in infrastructure"));
+      console.log(
+        chalk.yellow("Starting interactive remediation session...\n"),
+      );
+
+      execSync(
+        "claude code review --file terraform/ --template security --interactive",
+        {
+          stdio: "inherit",
+        },
+      );
     }
-    
+
     return issues;
   }
 }
@@ -1311,6 +1413,7 @@ class InfraSecurityScanner {
 ### 6.3 Cost Optimization
 
 **Review infrastructure for cost optimization**:
+
 ```bash
 # Analyze for cost optimization opportunities
 claude code review --file terraform/ --template cost-optimization \
@@ -1328,15 +1431,18 @@ claude code review --file terraform/ --template cost-optimization \
 ### 7.1 Environment Management
 
 **Environment configuration validator**:
+
 ```javascript
 // scripts/validate-env.js
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class EnvValidator {
   async validateEnvironment(env) {
-    console.log(chalk.blue(`🔍 Validating ${env} environment configuration...`));
-    
+    console.log(
+      chalk.blue(`🔍 Validating ${env} environment configuration...`),
+    );
+
     // Use Claude to check environment configs
     const validation = execSync(
       `claude code review --file config/${env}.json \
@@ -1347,16 +1453,18 @@ class EnvValidator {
           - Incorrect service endpoints
           - Database connection strings
           - API keys and tokens"`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
-    
+
     console.log(validation);
-    
+
     // Interactive fix for issues
-    if (validation.includes('ISSUE') || validation.includes('WARNING')) {
-      console.log(chalk.yellow('\nStarting interactive configuration session...'));
+    if (validation.includes("ISSUE") || validation.includes("WARNING")) {
+      console.log(
+        chalk.yellow("\nStarting interactive configuration session..."),
+      );
       execSync(`claude code review --file config/${env}.json --interactive`, {
-        stdio: 'inherit'
+        stdio: "inherit",
       });
     }
   }
@@ -1366,6 +1474,7 @@ class EnvValidator {
 ### 7.2 Release Patterns
 
 **Deployment safety checks**:
+
 ```bash
 # Pre-deployment validation
 claude code review --diff main...release --template deployment-safety \
@@ -1391,21 +1500,22 @@ claude code docs generate --template deployment-runbook \
 ### 8.1 Log Analysis
 
 **Claude-powered log analysis**:
+
 ```javascript
 // scripts/analyze-logs.js
-const { execSync } = require('child_process');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const chalk = require("chalk");
 
 class LogAnalyzer {
-  async analyzeLogs(logFile, timeRange = '1h') {
-    console.log(chalk.blue('📊 Analyzing logs with Claude...'));
-    
+  async analyzeLogs(logFile, timeRange = "1h") {
+    console.log(chalk.blue("📊 Analyzing logs with Claude..."));
+
     // Extract relevant logs
     const logs = execSync(
       `grep -E 'ERROR|WARN|CRITICAL' ${logFile} | tail -n 1000`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
-    
+
     // Analyze with Claude
     const analysis = execSync(
       `echo "${logs}" | claude code analyze --template logs \
@@ -1415,21 +1525,21 @@ class LogAnalyzer {
           - Affected services
           - User impact
           - Recommended fixes"`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
-    
+
     console.log(analysis);
-    
+
     // If critical issues, start interactive debugging
-    if (analysis.includes('CRITICAL')) {
-      console.log(chalk.red('\n⚠️ Critical issues detected'));
-      console.log(chalk.yellow('Starting interactive debugging session...\n'));
-      
-      execSync('claude code debug --interactive --context logs/', {
-        stdio: 'inherit'
+    if (analysis.includes("CRITICAL")) {
+      console.log(chalk.red("\n⚠️ Critical issues detected"));
+      console.log(chalk.yellow("Starting interactive debugging session...\n"));
+
+      execSync("claude code debug --interactive --context logs/", {
+        stdio: "inherit",
       });
     }
-    
+
     return analysis;
   }
 }
@@ -1438,6 +1548,7 @@ class LogAnalyzer {
 ### 8.2 Incident Response
 
 **Incident analysis helper**:
+
 ```bash
 # Analyze incident for root cause
 claude code analyze --template incident \
@@ -1456,6 +1567,7 @@ claude code docs generate --template post-mortem \
 ### 9.1 Database Operations
 
 **Database migration reviews**:
+
 ```bash
 # Review Prisma migrations
 claude code review --file prisma/migrations/ --template database \
@@ -1473,46 +1585,51 @@ claude code test generate --file prisma/migrations/20240101_add_user_status \
 ### 9.2 Documentation Automation
 
 **Continuous documentation updates**:
+
 ```javascript
 // scripts/update-docs.js
-const { execSync } = require('child_process');
-const cron = require('node-cron');
-const chalk = require('chalk');
+const { execSync } = require("child_process");
+const cron = require("node-cron");
+const chalk = require("chalk");
 
 class DocUpdater {
   constructor() {
     // Schedule daily documentation updates
-    cron.schedule('0 2 * * *', () => {
+    cron.schedule("0 2 * * *", () => {
       this.updateAllDocs();
     });
   }
-  
+
   async updateAllDocs() {
-    console.log(chalk.blue('📚 Updating documentation...'));
-    
+    console.log(chalk.blue("📚 Updating documentation..."));
+
     const updates = [
-      'claude code docs update --file README.md',
-      'claude code docs update --file docs/API.md --context src/api/',
-      'claude code docs generate --template changelog --output CHANGELOG.md',
-      'claude code docs update --file docs/ARCHITECTURE.md --context src/'
+      "claude code docs update --file README.md",
+      "claude code docs update --file docs/API.md --context src/api/",
+      "claude code docs generate --template changelog --output CHANGELOG.md",
+      "claude code docs update --file docs/ARCHITECTURE.md --context src/",
     ];
-    
+
     for (const update of updates) {
       try {
-        execSync(update, { stdio: 'pipe' });
-        console.log(chalk.green(`✅ ${update.split('--file')[1]?.split(' ')[1] || 'Doc'} updated`));
+        execSync(update, { stdio: "pipe" });
+        console.log(
+          chalk.green(
+            `✅ ${update.split("--file")[1]?.split(" ")[1] || "Doc"} updated`,
+          ),
+        );
       } catch (error) {
         console.error(chalk.red(`Failed: ${error.message}`));
       }
     }
-    
+
     // Commit updates if changes exist
     try {
-      execSync('git add -A docs/ README.md CHANGELOG.md');
+      execSync("git add -A docs/ README.md CHANGELOG.md");
       execSync('git commit -m "docs: automated documentation update"');
-      console.log(chalk.green('✅ Documentation updates committed'));
+      console.log(chalk.green("✅ Documentation updates committed"));
     } catch {
-      console.log(chalk.gray('No documentation changes'));
+      console.log(chalk.gray("No documentation changes"));
     }
   }
 }
@@ -1521,6 +1638,7 @@ class DocUpdater {
 ### 9.3 Performance Reviews
 
 **Performance analysis with Claude**:
+
 ```bash
 # Analyze performance metrics
 claude code analyze --template performance \
@@ -1550,6 +1668,7 @@ This guide demonstrates how Claude CLI transforms every aspect of the developmen
 5. **Operations**: Log analysis and incident response assistance
 
 **Key Benefits**:
+
 - No API costs - uses your Claude subscription
 - Interactive mode for complex discussions
 - Background mode for automatic generation
@@ -1557,6 +1676,7 @@ This guide demonstrates how Claude CLI transforms every aspect of the developmen
 - Learns your codebase and style over time
 
 **Getting Started**:
+
 ```bash
 # Install Claude CLI
 npm install -g @claude-ai/claude-code
