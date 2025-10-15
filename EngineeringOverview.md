@@ -2,7 +2,7 @@
 
 InformUp is a low-resource, nonprofit newsroom which is focused on dramatically reducing the barriers for residents to regularly engage with their elected officials, a mission that requires the development of new software enabled tools.
 
-This document outlines the procedures and practices necessary for engineers working in support of InformUo, be they full time staff or occasional volunteers, to make contributions with ease and with the confidence that they are not going to break any of our products.
+This document outlines the procedures and practices necessary for engineers working in support of InformUp, be they full time staff or occasional volunteers, to make contributions with ease and with the confidence that they are not going to break any of our products.
 
 Included in this document are the high level goals for our engineering processes as well as the details outlining how our development and release processes are built.
 
@@ -21,6 +21,7 @@ Included in this document are the high level goals for our engineering processes
 
 # What the Development Process in cludes
 
+- Roadmap &Prioritizaiton
 - Feature planning
 - Design Review
     - Architecture
@@ -38,14 +39,45 @@ Included in this document are the high level goals for our engineering processes
 - Deployment
 - Monitoring
 
+# Roadmap & Prioritization
+
+The Roadmap is maintained by InformUp with prioritizaiton based on the needs of the organization and what work will drive the most progress towards the organization's mission. This super scientific process will be carried out in conversation with engineering guidance.
+
+The roadmap is maintained in the Engineering Project hosted on Github at
+[https://github.com/orgs/INFORMUP/projects/1](https://github.com/orgs/INFORMUP/projects/1)
+
+### It's your time, you decide
+
+That said, it's your time that you are so generously giving, so spend it however you findmost interesting. We only ask that you track it in the Engineering project page.
+
 # Feature Planning
 
 #### Task:
 
-When a developer wants to create a new feature, from adding a new newsletter selection flow to creating an entirely new product like a survey results dashboard, there needs to be a feature planning document. The goal is to ensure that the engineer has a complete understanding of the task they are about to set out on.
+When someone wants to create a new feature, from adding a new newsletter selection flow to creating an entirely new product like a survey results dashboard, there needs to be a feature planning document. The goal is to ensure that the originator has a complete understanding of the task they are about to set out on.
+
+**Who can start a feature**
+
+With the rise of AI coding assistants, someone with little to know coding experience can create code that that solves the problem they set out to solve. These contributors, who we grant permissions to, should be empowered to create new features.
+
+    **Who has permission?**
+    - People internal to the InformUp org.
+    - People who have been approved by InformIp
+
+    **Additional Guard rails**
+    - New features cannot be shipped without approval from InformUp
+    - Code form these contributors cannot be merged with out human review.
+
+    ***Prioritization**
+    Engineering resources should prioritize support for planned features first, but time permitting, or if they are personally motivated, they can and should review feature submissions from this cohort.
+
+
+    **Feature suggestions**
+    Suggested features will be tracked in github in the project board and tagged as feature requests. We'll prioritize as we are able.
 
 - Should new features be started in a new branch?
 - Should branching auto intiate this design dialogue with the Coding assistant?
+-
 
 #### AI Support
 
@@ -71,12 +103,14 @@ The review should cover:
 
 #### AI Support
 
-Coding assistants should be tasked with performing the first pass of this audit. It should be done in an interactive way where the develop can accept or reject design suggestions. The final analysis should generate a report which is human readable and shared with the Design document.
+Coding assistants should be tasked with performing the first pass of this design review. It should be done in an interactive way where the develop can accept or reject design suggestions. The final analysis should generate a report which is human readable and shared with the Design document.
 [Link to document outlining custom instructions for AI for this step]
 
 #### Human Review
 
 This design document should be shared in a manner such that the rest of the engineering community can review and provide feedback. IT is also helpful context as the feature makes progress towards deployment. This review should be nonblocking for smaller features, and blocking for new products.
+
+This will live as a markdown file in the design docs repository in the root directory of the repo.
 
 # Making Code Changes
 
@@ -102,7 +136,9 @@ Have the AI write all of the tests.
 
 #### Human Review
 
-- Should tests be human readable, reviewable?
+- tests should be human readable and regularly pruned for utility
+- What guideliness do we need to provide for test writing?
+- can we audit the tests with LLMs too?
 
 # Committing Code Changes
 
@@ -118,7 +154,7 @@ Tests should be run on each code commit
 
 #### AI Support
 
-- Should the assistant try to auto diagnose any failing tests?
+The assistant should automatically attempt to diagnose failing tests and present the diagnosis and code change for the contributor to review.
 
 #### Human Review.
 
@@ -135,6 +171,8 @@ The PR should be Human readable, describe the major changes, and link to the des
     - What if I am the originator?
     - What if someone we don't know is the originator?
 
+After the PR check, we will run a full test pass and if everything passes, the PR will be merged.
+
 #### AI Support
 
 - Can AI do PR checks? if so, in what cases?
@@ -143,12 +181,16 @@ The PR should be Human readable, describe the major changes, and link to the des
 
 #### Task
 
-On PR Merge, it should generate a new build for deployment
-
 #### AI Support?
 
 - Aautomatic diagnosis of build failureS?
 
 # Deploying to Production
 
+#### Task
+
+#### AI Support
+
 # Monitoring
+
+We will connect Ai assistant monitoring of error logs so it can create tickets and attempt to auto diagnose and resolve. Ai generated fixes should go through the full design review process as if it were a new feature.
