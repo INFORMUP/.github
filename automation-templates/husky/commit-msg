@@ -1,0 +1,60 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Commit-msg hook: Validate commit message format
+# Part of InformUp Engineering Automation System
+# Version: 1.0.0
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Colors
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+# Skip if merge commit
+if echo "$COMMIT_MSG" | grep -q "^Merge"; then
+  exit 0
+fi
+
+# Skip if revert commit
+if echo "$COMMIT_MSG" | grep -q "^Revert"; then
+  exit 0
+fi
+
+# Conventional Commits format: type(scope): subject
+# Types: feat, fix, docs, style, refactor, test, chore
+PATTERN="^(feat|fix|docs|style|refactor|test|chore)(\([a-z0-9-]+\))?: .{1,100}"
+
+if echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+  # Valid commit message
+  exit 0
+else
+  echo ""
+  echo "${RED}❌ Invalid commit message format${NC}"
+  echo ""
+  echo "Commit message must follow Conventional Commits format:"
+  echo "  ${GREEN}<type>(<scope>): <subject>${NC}"
+  echo ""
+  echo "Types:"
+  echo "  ${GREEN}feat${NC}     - New feature"
+  echo "  ${GREEN}fix${NC}      - Bug fix"
+  echo "  ${GREEN}docs${NC}     - Documentation changes"
+  echo "  ${GREEN}style${NC}    - Code style changes (formatting)"
+  echo "  ${GREEN}refactor${NC} - Code refactoring"
+  echo "  ${GREEN}test${NC}     - Adding or updating tests"
+  echo "  ${GREEN}chore${NC}    - Maintenance tasks"
+  echo ""
+  echo "Examples:"
+  echo "  ${GREEN}feat(auth): Add OAuth login support${NC}"
+  echo "  ${GREEN}fix(api): Correct validation for email addresses${NC}"
+  echo "  ${GREEN}docs: Update README with setup instructions${NC}"
+  echo ""
+  echo "Your message:"
+  echo "  ${YELLOW}$COMMIT_MSG${NC}"
+  echo ""
+
+  exit 1
+fi

@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "source": "github.com/INFORMUP/.github",
+  "enabled": true,
+  "repoType": "frontend",
+
+  "triggers": {
+    "featurePlanning": {
+      "enabled": true,
+      "branches": ["feature/*"],
+      "mode": "interactive",
+      "timeout": 300000
+    },
+    "designReview": {
+      "enabled": true,
+      "files": ["design-docs/**/*.md"],
+      "mode": "interactive",
+      "timeout": 600000
+    },
+    "testGeneration": {
+      "enabled": true,
+      "filePattern": "src/**/*.{js,ts,jsx,tsx}",
+      "excludePattern": "**/*.test.*",
+      "mode": "background",
+      "debounce": 2000
+    },
+    "docGeneration": {
+      "enabled": false,
+      "mode": "background",
+      "debounce": 2000
+    },
+    "preCommitReview": {
+      "enabled": true,
+      "quick": true,
+      "failOnIssues": false,
+      "mode": "blocking",
+      "timeout": 60000
+    },
+    "postCommitDocs": {
+      "enabled": false,
+      "mode": "background"
+    },
+    "prePushChecks": {
+      "enabled": true,
+      "mode": "blocking",
+      "timeout": 300000
+    },
+    "prGeneration": {
+      "enabled": true,
+      "mode": "interactive"
+    }
+  },
+
+  "testing": {
+    "command": "npm test",
+    "coverageCommand": "npm test -- --coverage",
+    "coverageThreshold": 80,
+    "types": ["unit", "integration"]
+  },
+
+  "build": {
+    "command": "npm run build",
+    "sizeLimitMB": 5
+  },
+
+  "claude": {
+    "model": "claude-3-5-sonnet-20241022",
+    "timeout": 60000,
+    "maxTokens": 4096
+  },
+
+  "monitoring": {
+    "enabled": false,
+    "schedule": "0 */4 * * *",
+    "errorThreshold": 10
+  },
+
+  "notifications": {
+    "desktop": false,
+    "sound": false
+  }
+}
