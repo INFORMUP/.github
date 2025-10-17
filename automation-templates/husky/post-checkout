@@ -1,0 +1,186 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Post-checkout hook: Trigger feature planning for new feature branches
+# Part of InformUp Engineering Automation System
+# Version: 1.0.0
+
+PREV_HEAD=$1
+NEW_HEAD=$2
+BRANCH_CHECKOUT=$3
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Only trigger on branch checkout (not file checkout)
+if [ "$BRANCH_CHECKOUT" != "1" ]; then
+  exit 0
+fi
+
+# Get current branch name
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+
+# Load config
+CONFIG_FILE=".claude-automation-config.json"
+if [ -f "$CONFIG_FILE" ]; then
+  FEATURE_PLANNING_ENABLED=$(node -p "try { require('./$CONFIG_FILE').triggers.featurePlanning.enabled } catch(e) { 'true' }")
+else
+  FEATURE_PLANNING_ENABLED="true"
+fi
+
+# Check if this is a feature branch
+IS_FEATURE_BRANCH=false
+if echo "$BRANCH_NAME" | grep -q "^feature/"; then
+  IS_FEATURE_BRANCH=true
+fi
+
+# Only proceed if it's a feature branch and planning is enabled
+if [ "$IS_FEATURE_BRANCH" = "false" ] || [ "$FEATURE_PLANNING_ENABLED" != "true" ]; then
+  exit 0
+fi
+
+# Extract feature name from branch
+FEATURE_NAME=$(echo "$BRANCH_NAME" | sed 's/^feature\///')
+
+# Check if design doc already exists
+DESIGN_DOC="design-docs/${FEATURE_NAME}.md"
+
+if [ -f "$DESIGN_DOC" ]; then
+  echo "${GREEN}✓${NC} Design doc already exists: $DESIGN_DOC"
+  exit 0
+fi
+
+echo ""
+echo "🎨 ${BLUE}New feature branch detected:${NC} $BRANCH_NAME"
+echo ""
+
+# Check if Claude is available
+if ! command -v claude > /dev/null 2>&1; then
+  echo "${YELLOW}⚠ Claude Code not installed${NC}"
+  echo ""
+  echo "To enable AI-assisted feature planning:"
+  echo "  npm install -g @anthropic/claude-code"
+  echo "  claude auth login"
+  echo ""
+  echo "For now, create design doc manually:"
+  echo "  mkdir -p design-docs"
+  echo "  touch $DESIGN_DOC"
+  echo ""
+  exit 0
+fi
+
+# Offer to start feature planning
+echo "Would you like to start AI-assisted feature planning?"
+echo ""
+echo "  ${BLUE}1)${NC} Yes, start interactive planning session"
+echo "  ${BLUE}2)${NC} Create template only (no AI)"
+echo "  ${BLUE}3)${NC} Skip for now"
+echo ""
+printf "Choice [1-3]: "
+
+# Read user input (with timeout)
+read -t 30 CHOICE || CHOICE="3"
+
+case $CHOICE in
+  1)
+    echo ""
+    echo "🤖 Starting AI-assisted feature planning..."
+    echo ""
+
+    # Create design docs directory if it doesn't exist
+    mkdir -p design-docs
+
+    # Check if feature planning script exists
+    if [ -f "scripts/automation/feature-planning.js" ]; then
+      node scripts/automation/feature-planning.js "$FEATURE_NAME" --interactive
+    else
+      # Fallback: use Claude directly with a basic prompt
+      echo "# Feature: $FEATURE_NAME" > "$DESIGN_DOC"
+      echo "" >> "$DESIGN_DOC"
+      echo "[Claude will help fill this in...]" >> "$DESIGN_DOC"
+
+      claude code --file "$DESIGN_DOC" --prompt "Help me plan this feature: $FEATURE_NAME. Ask me questions about requirements, technical approach, testing strategy, and potential challenges."
+    fi
+
+    echo ""
+    echo "${GREEN}✓${NC} Feature planning complete!"
+    echo "${BLUE}Design doc created:${NC} $DESIGN_DOC"
+    echo ""
+    ;;
+
+  2)
+    echo ""
+    echo "📝 Creating design doc template..."
+    mkdir -p design-docs
+
+    # Create basic template
+    cat > "$DESIGN_DOC" << EOF
+# Feature Plan: $FEATURE_NAME
+
+**Author**: $(git config user.name)
+**Date**: $(date +%Y-%m-%d)
+**Status**: Draft
+**Branch**: $BRANCH_NAME
+
+## 1. Problem Statement
+
+What problem are we solving? Who is affected?
+
+## 2. Proposed Solution
+
+### 2.1 User Experience
+
+Describe the user-facing changes.
+
+### 2.2 Technical Approach
+
+- Components/services to be created or modified
+- Data models needed
+- APIs to be created or changed
+
+## 3. Implementation Plan
+
+### Phase 1: [Description]
+- Task 1
+- Task 2
+
+## 4. Testing Strategy
+
+- Unit tests
+- Integration tests
+- E2E tests
+
+## 5. Success Metrics
+
+How will we know this feature is successful?
+
+## 6. Open Questions
+
+- Question 1?
+- Question 2?
+EOF
+
+    echo "${GREEN}✓${NC} Template created: $DESIGN_DOC"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Edit the design doc: code $DESIGN_DOC"
+    echo "  2. Get AI review: claude code review --file $DESIGN_DOC"
+    echo "  3. Start coding!"
+    echo ""
+    ;;
+
+  3|*)
+    echo ""
+    echo "${YELLOW}⚠${NC} Skipping feature planning"
+    echo ""
+    echo "Remember to create a design doc before implementing:"
+    echo "  mkdir -p design-docs"
+    echo "  touch $DESIGN_DOC"
+    echo ""
+    ;;
+esac
+
+exit 0

@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Post-commit hook: Update documentation in background
+# Part of InformUp Engineering Automation System
+# Version: 1.0.0
+
+# Load config
+CONFIG_FILE=".claude-automation-config.json"
+if [ -f "$CONFIG_FILE" ]; then
+  POST_COMMIT_ENABLED=$(node -p "try { require('./$CONFIG_FILE').triggers.postCommitDocs.enabled } catch(e) { 'false' }")
+else
+  POST_COMMIT_ENABLED="false"
+fi
+
+# Exit early if disabled
+if [ "$POST_COMMIT_ENABLED" != "true" ]; then
+  exit 0
+fi
+
+# Check if Claude is available
+if ! command -v claude > /dev/null 2>&1; then
+  exit 0
+fi
+
+# Get files changed in last commit
+CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# Check if any source files were changed
+SRC_FILES_CHANGED=false
+if echo "$CHANGED_FILES" | grep -q "^src/"; then
+  SRC_FILES_CHANGED=true
+fi
+
+# Only proceed if source files changed
+if [ "$SRC_FILES_CHANGED" = "false" ]; then
+  exit 0
+fi
+
+echo ""
+echo "📚 Updating documentation in background..."
+
+# Run documentation update in background (non-blocking)
+if [ -f "scripts/automation/update-docs.js" ]; then
+  node scripts/automation/update-docs.js &
+  disown
+fi
+
+exit 0
