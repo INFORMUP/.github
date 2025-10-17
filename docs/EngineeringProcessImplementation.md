@@ -1696,6 +1696,611 @@ Create post-mortem document:
 
 ---
 
+## 11. Automation System Implementation
+
+**Motivation**: Automate repetitive tasks and provide AI assistance at every stage of development, while keeping everything running locally on developer machines.
+
+### 11.1 Automation Overview
+
+The InformUp automation system uses Claude Code CLI, git hooks, and file watchers to provide intelligent assistance throughout the development lifecycle.
+
+**Key Benefits**:
+- Consistent quality across all developers
+- Early issue detection (before PR/CI)
+- Reduced cognitive load (don't forget steps)
+- Faster onboarding for new developers
+- Living documentation (auto-updates)
+
+**See Also**:
+- [Getting Started Guide](./GettingStarted.md) - Setup instructions
+- [Automation Architecture](./AutomationArchitecture.md) - Technical details
+
+### 11.2 Automation Trigger Matrix
+
+| Event | When | AI Task | Mode | Setup Required |
+|-------|------|---------|------|----------------|
+| **Branch Creation** | `git checkout -b feature/*` | Generate feature plan template & interactive planning | Interactive | Git hook: `post-checkout` |
+| **Design Doc Saved** | Design doc committed | Architecture + Security + Cost review | Interactive | Git hook: `pre-commit` |
+| **New File Created** | New `.js/.ts` in `src/` | Generate corresponding test file | Background | File watcher daemon |
+| **File Saved** | Code file modified | Update inline documentation | Background | File watcher daemon |
+| **Pre-Commit** | Before commit completes | Quick code review + run tests | Blocking | Git hook: `pre-commit` |
+| **Post-Commit** | After commit completes | Update changelog, API docs | Background | Git hook: `post-commit` |
+| **Pre-Push** | Before push to remote | Full local CI + generate PR description | Interactive | Git hook: `pre-push` |
+| **CI Failure** | GitHub Action fails | Diagnose failure, suggest fixes | On-demand | CLI command |
+| **Error Logged** | Error appears in logs | Triage and create issues | Scheduled | Cron job (optional) |
+
+### 11.3 Setting Up Automation
+
+#### Quick Setup
+
+```bash
+# Navigate to your repository
+cd /path/to/your-repo
+
+# Install automation (script in development)
+# For now, see docs/GettingStarted.md for manual steps
+curl -sSL https://raw.githubusercontent.com/INFORMUP/.github/main/automation-installer/install.sh | bash
+
+# Verify installation
+npm run automation:test
+
+# Start file watcher (optional, for background automation)
+npm run automation:start &
+```
+
+#### Manual Setup (Temporary)
+
+Until the automated installer is complete:
+
+```bash
+# 1. Install dependencies
+npm install --save-dev husky@^8.0.0 chokidar@^3.5.0
+
+# 2. Initialize Husky
+npx husky-init && npm install
+
+# 3. Create directories
+mkdir -p scripts/automation design-docs .claude-prompts
+
+# 4. Create configuration file
+cat > .claude-automation-config.json << 'EOF'
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "repoType": "frontend",
+  "triggers": {
+    "featurePlanning": { "enabled": true, "mode": "interactive" },
+    "designReview": { "enabled": true, "mode": "interactive" },
+    "testGeneration": { "enabled": true, "mode": "background" },
+    "preCommitReview": { "enabled": true, "quick": true },
+    "prGeneration": { "enabled": true, "mode": "interactive" }
+  }
+}
+EOF
+
+# 5. Add npm scripts
+npm pkg set scripts.automation:start="node scripts/automation/claude-watcher.js"
+npm pkg set scripts.automation:test="echo 'Automation setup verified'"
+npm pkg set scripts.local-ci="node scripts/automation/local-ci.js"
+```
+
+Full setup instructions: [docs/GettingStarted.md](./GettingStarted.md)
+
+### 11.4 Git Hooks Integration
+
+Git hooks automatically run checks at key points:
+
+#### Pre-Commit Hook
+
+```bash
+# .husky/pre-commit
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run linter
+npm run lint --fix
+
+# Run formatter
+npm run format
+
+# Run tests
+npm test -- --passWithNoTests
+
+# Quick AI code review (if enabled)
+if [ -f ".claude-automation-config.json" ]; then
+  node scripts/automation/quick-review.js
+fi
+
+echo "✅ Pre-commit checks passed"
+```
+
+#### Pre-Push Hook
+
+```bash
+# .husky/pre-push
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run full local CI
+npm run local-ci
+
+# Generate PR description (interactive)
+if git rev-parse --abbrev-ref HEAD | grep -q "feature/"; then
+  echo "📝 Generating PR description..."
+  node scripts/automation/pr-generator.js --interactive
+fi
+
+echo "✅ Pre-push checks passed"
+```
+
+#### Post-Checkout Hook (Feature Planning)
+
+```bash
+# .husky/post-checkout
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+PREV_HEAD=$1
+NEW_HEAD=$2
+BRANCH_CHECKOUT=$3
+
+# Only trigger on branch checkout (not file checkout)
+if [ "$BRANCH_CHECKOUT" = "1" ]; then
+  BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+
+  # Trigger feature planning for feature branches
+  if echo "$BRANCH_NAME" | grep -q "^feature/"; then
+    echo "🎨 Starting feature planning for $BRANCH_NAME..."
+    node scripts/automation/feature-planning.js --interactive
+  fi
+fi
+```
+
+### 11.5 File Watcher Daemon
+
+The file watcher runs in the background and responds to code changes:
+
+```javascript
+// scripts/automation/claude-watcher.js
+const chokidar = require('chokidar');
+const { execSync, spawn } = require('child_process');
+const path = require('path');
+
+class ClaudeWatcher {
+  constructor(config) {
+    this.config = config;
+    this.debounceTimers = new Map();
+  }
+
+  start() {
+    console.log('🤖 Claude automation watcher started');
+
+    // Watch source files
+    const watcher = chokidar.watch('src/**/*.{js,ts,jsx,tsx}', {
+      ignored: /node_modules|\.test\.|\.spec\./,
+      persistent: true,
+      ignoreInitial: true
+    });
+
+    watcher
+      .on('add', (filepath) => this.onFileAdded(filepath))
+      .on('change', (filepath) => this.onFileChanged(filepath));
+  }
+
+  onFileAdded(filepath) {
+    if (!this.config.triggers.testGeneration?.enabled) return;
+
+    const testFile = this.getTestFilePath(filepath);
+    if (!fs.existsSync(testFile)) {
+      console.log(`📝 Generating tests for ${filepath}...`);
+      this.generateTests(filepath, testFile);
+    }
+  }
+
+  onFileChanged(filepath) {
+    if (!this.config.triggers.docGeneration?.enabled) return;
+
+    // Debounce: wait for 2 seconds of inactivity
+    this.debounce(filepath, () => {
+      console.log(`📚 Updating docs for ${filepath}...`);
+      this.updateDocs(filepath);
+    }, 2000);
+  }
+
+  generateTests(sourceFile, testFile) {
+    // Run in background (non-blocking)
+    spawn('claude', [
+      'code', 'test', 'generate',
+      '--file', sourceFile,
+      '--output', testFile
+    ], {
+      detached: true,
+      stdio: 'ignore'
+    }).unref();
+  }
+
+  updateDocs(filepath) {
+    // Update inline documentation
+    spawn('claude', [
+      'code', 'docs', 'update',
+      '--file', filepath,
+      '--background'
+    ], {
+      detached: true,
+      stdio: 'ignore'
+    }).unref();
+  }
+
+  debounce(key, func, wait) {
+    if (this.debounceTimers.has(key)) {
+      clearTimeout(this.debounceTimers.get(key));
+    }
+    this.debounceTimers.set(key, setTimeout(() => {
+      func();
+      this.debounceTimers.delete(key);
+    }, wait));
+  }
+
+  getTestFilePath(filepath) {
+    const ext = path.extname(filepath);
+    return filepath.replace(ext, `.test${ext}`);
+  }
+}
+
+// Start watcher
+const config = require('../../.claude-automation-config.json');
+const watcher = new ClaudeWatcher(config);
+watcher.start();
+```
+
+**Running the watcher**:
+
+```bash
+# Start in background
+npm run automation:start &
+
+# Or use systemd/launchd for always-on
+# (configuration examples in docs/AutomationArchitecture.md)
+
+# Check status
+ps aux | grep claude-watcher
+
+# View logs
+tail -f .claude-automation.log
+
+# Stop
+npm run automation:stop
+```
+
+### 11.6 Configuration Management
+
+Configuration is managed through `.claude-automation-config.json`:
+
+```json
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "repoType": "frontend",
+
+  "triggers": {
+    "featurePlanning": {
+      "enabled": true,
+      "branches": ["feature/*"],
+      "mode": "interactive"
+    },
+    "designReview": {
+      "enabled": true,
+      "files": ["design-docs/**/*.md"],
+      "mode": "interactive"
+    },
+    "testGeneration": {
+      "enabled": true,
+      "filePattern": "src/**/*.{js,ts,jsx,tsx}",
+      "excludePattern": "**/*.test.*",
+      "mode": "background"
+    },
+    "preCommitReview": {
+      "enabled": true,
+      "quick": true,
+      "failOnIssues": false
+    },
+    "prGeneration": {
+      "enabled": true,
+      "mode": "interactive"
+    }
+  },
+
+  "testing": {
+    "command": "npm test",
+    "coverageThreshold": 80,
+    "coverageCommand": "npm test -- --coverage"
+  },
+
+  "build": {
+    "command": "npm run build",
+    "sizeLimitMB": 5
+  },
+
+  "claude": {
+    "model": "claude-3-5-sonnet-20241022",
+    "timeout": 60000,
+    "maxTokens": 4096
+  }
+}
+```
+
+**Customizing per repository**:
+
+1. Edit `.claude-automation-config.json` in your repo
+2. Disable specific triggers you don't want
+3. Adjust commands for your project structure
+4. Set repository-specific thresholds
+
+**Customizing per developer**:
+
+Create `~/.config/claude-automation/config.json` for personal preferences:
+
+```json
+{
+  "triggers": {
+    "testGeneration": {
+      "enabled": false  // Disable if you prefer manual test writing
+    }
+  },
+  "notifications": {
+    "desktop": true,
+    "sound": false
+  },
+  "verboseLogging": true
+}
+```
+
+### 11.7 Using Automation in Your Workflow
+
+#### Starting a New Feature
+
+```bash
+# Create branch (triggers feature planning)
+git checkout -b feature/newsletter-preferences
+
+# Interactive AI session starts automatically
+# Answer questions to generate feature plan
+
+# Feature plan template created at:
+# design-docs/newsletter-preferences.md
+```
+
+#### During Development
+
+```bash
+# Create new file
+touch src/components/NewsletterForm.tsx
+
+# Test file auto-generated in background
+# src/components/NewsletterForm.test.tsx
+
+# Make changes to code
+# (docs auto-update on save via file watcher)
+```
+
+#### Committing Changes
+
+```bash
+# Stage changes
+git add src/
+
+# Commit (triggers pre-commit checks)
+git commit -m "feat: Add newsletter preferences UI"
+
+# Automatic checks run:
+# ✓ Linter
+# ✓ Formatter
+# ✓ Tests
+# ✓ Quick AI review
+
+# Post-commit: docs updated in background
+```
+
+#### Creating Pull Request
+
+```bash
+# Push (triggers pre-push checks)
+git push origin feature/newsletter-preferences
+
+# Full local CI runs:
+# ✓ All tests with coverage
+# ✓ AI security review
+# ✓ AI architecture review
+# ✓ Build verification
+
+# Interactive PR description generation
+# AI analyzes commits and generates PR description
+
+# Create PR
+gh pr create
+```
+
+### 11.8 Debugging Automation
+
+#### View Logs
+
+```bash
+# View real-time logs
+tail -f .claude-automation.log
+
+# Search logs
+grep "ERROR" .claude-automation.log
+
+# View verbose output
+DEBUG=* npm run automation:start
+```
+
+#### Test Individual Components
+
+```bash
+# Test git hooks
+.husky/pre-commit
+
+# Test file watcher
+node scripts/automation/claude-watcher.js --test
+
+# Test PR generator
+node scripts/automation/pr-generator.js --dry-run
+```
+
+#### Disable Automation Temporarily
+
+```bash
+# Skip hooks for one commit
+git commit --no-verify -m "message"
+
+# Disable globally
+echo 'export CLAUDE_AUTOMATION_ENABLED=false' >> ~/.zshrc
+
+# Disable for repository
+echo '{"enabled": false}' > .claude-automation-config.json
+```
+
+### 11.9 Troubleshooting Common Issues
+
+**Issue**: Git hooks not running
+
+**Solution**:
+```bash
+# Make hooks executable
+chmod +x .husky/*
+
+# Reinstall Husky
+rm -rf .husky
+npx husky install
+```
+
+**Issue**: File watcher not detecting changes
+
+**Solution**:
+```bash
+# Check if running
+ps aux | grep claude-watcher
+
+# Restart watcher
+npm run automation:stop
+npm run automation:start
+```
+
+**Issue**: Claude Code command not found
+
+**Solution**:
+```bash
+# Install Claude Code CLI
+npm install -g @anthropic/claude-code
+
+# Authenticate
+claude auth login
+
+# Verify
+claude --version
+```
+
+**Issue**: Automation too slow/blocking workflow
+
+**Solution**:
+```json
+// .claude-automation-config.json
+{
+  "triggers": {
+    "preCommitReview": {
+      "quick": true,      // Faster checks
+      "failOnIssues": false  // Don't block commits
+    },
+    "testGeneration": {
+      "enabled": false    // Disable background tasks
+    }
+  }
+}
+```
+
+**Full troubleshooting guide**: [docs/GettingStarted.md#troubleshooting](./GettingStarted.md#troubleshooting)
+
+### 11.10 Best Practices
+
+**Do**:
+- ✅ Run automation locally during development
+- ✅ Review AI suggestions before accepting
+- ✅ Keep prompts updated and relevant
+- ✅ Configure automation for your workflow
+- ✅ Report issues and suggest improvements
+
+**Don't**:
+- ❌ Blindly accept all AI suggestions
+- ❌ Disable automation without understanding impact
+- ❌ Commit secrets or sensitive data
+- ❌ Skip tests just to make commits faster
+- ❌ Forget to update automation regularly
+
+### 11.11 Updating Automation
+
+```bash
+# Check current version
+cat .claude-automation-config.json | jq '.version'
+
+# Check for updates
+curl -sSL https://raw.githubusercontent.com/INFORMUP/.github/main/automation-installer/VERSION
+
+# Update (script in development)
+npm run automation:update
+
+# Manual update (current method)
+# See docs/GettingStarted.md#updating-automation
+```
+
+### 11.12 VS Code Integration
+
+Add tasks for quick AI assistance:
+
+```json
+// .vscode/tasks.json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AI: Review Current File",
+      "type": "shell",
+      "command": "claude code review --file ${file}"
+    },
+    {
+      "label": "AI: Generate Tests",
+      "type": "shell",
+      "command": "claude code test generate --file ${file}"
+    },
+    {
+      "label": "AI: Explain Code",
+      "type": "shell",
+      "command": "claude code explain --file ${file} --line ${lineNumber}"
+    }
+  ]
+}
+```
+
+Keyboard shortcuts:
+
+```json
+// .vscode/keybindings.json
+[
+  {
+    "key": "cmd+shift+r",
+    "command": "workbench.action.tasks.runTask",
+    "args": "AI: Review Current File"
+  },
+  {
+    "key": "cmd+shift+t",
+    "command": "workbench.action.tasks.runTask",
+    "args": "AI: Generate Tests"
+  }
+]
+```
+
+---
+
 ## Appendix: Quick Reference
 
 ### Common Commands
