@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Post-checkout hook: Trigger feature planning for new feature branches
-# Part of InformUp Engineering Automation System
-# Version: 1.0.0
+# Post-checkout hook: Trigger feature planning for new branches
+# Part of InformUp Engineering Automation System (Agent-Based)
+# Version: 2.0.0
 
 PREV_HEAD=$1
 NEW_HEAD=$2
@@ -23,27 +23,57 @@ fi
 # Get current branch name
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 
+# Skip main/master/develop branches
+if [ "$BRANCH_NAME" = "main" ] || [ "$BRANCH_NAME" = "master" ] || [ "$BRANCH_NAME" = "develop" ]; then
+  exit 0
+fi
+
 # Load config
 CONFIG_FILE=".claude-automation-config.json"
 if [ -f "$CONFIG_FILE" ]; then
   FEATURE_PLANNING_ENABLED=$(node -p "try { require('./$CONFIG_FILE').triggers.featurePlanning.enabled } catch(e) { 'true' }")
+  PROMPT_ON_ALL_BRANCHES=$(node -p "try { require('./$CONFIG_FILE').triggers.featurePlanning.promptOnAllBranches } catch(e) { 'false' }")
+  BRANCH_PATTERNS=$(node -p "try { JSON.stringify(require('./$CONFIG_FILE').triggers.featurePlanning.branches) } catch(e) { '[]' }")
 else
   FEATURE_PLANNING_ENABLED="true"
+  PROMPT_ON_ALL_BRANCHES="false"
+  BRANCH_PATTERNS='["feature/*"]'
 fi
 
-# Check if this is a feature branch
-IS_FEATURE_BRANCH=false
-if echo "$BRANCH_NAME" | grep -q "^feature/"; then
-  IS_FEATURE_BRANCH=true
-fi
-
-# Only proceed if it's a feature branch and planning is enabled
-if [ "$IS_FEATURE_BRANCH" = "false" ] || [ "$FEATURE_PLANNING_ENABLED" != "true" ]; then
+# Check if feature planning is enabled
+if [ "$FEATURE_PLANNING_ENABLED" != "true" ]; then
   exit 0
 fi
 
-# Extract feature name from branch
-FEATURE_NAME=$(echo "$BRANCH_NAME" | sed 's/^feature\///')
+# Check if branch matches patterns
+BRANCH_MATCHES=false
+
+if [ "$PROMPT_ON_ALL_BRANCHES" = "true" ]; then
+  BRANCH_MATCHES=true
+else
+  # Parse patterns and check if branch matches any
+  PATTERNS=$(echo "$BRANCH_PATTERNS" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf-8')).join(' ')")
+
+  for pattern in $PATTERNS; do
+    # Convert glob pattern to regex
+    regex=$(echo "$pattern" | sed 's/\*/.*/')
+    if echo "$BRANCH_NAME" | grep -q "^$regex$"; then
+      BRANCH_MATCHES=true
+      break
+    fi
+  done
+fi
+
+# Only proceed if branch matches
+if [ "$BRANCH_MATCHES" = "false" ]; then
+  exit 0
+fi
+
+# Extract feature name from branch (remove common prefixes)
+FEATURE_NAME="$BRANCH_NAME"
+for prefix in "feature/" "fix/" "bugfix/" "enhancement/" "hotfix/" "release/"; do
+  FEATURE_NAME=$(echo "$FEATURE_NAME" | sed "s|^$prefix||")
+done
 
 # Check if design doc already exists
 DESIGN_DOC="design-docs/${FEATURE_NAME}.md"
@@ -54,7 +84,7 @@ if [ -f "$DESIGN_DOC" ]; then
 fi
 
 echo ""
-echo "🎨 ${BLUE}New feature branch detected:${NC} $BRANCH_NAME"
+echo "🎨 ${BLUE}New branch detected:${NC} $BRANCH_NAME"
 echo ""
 
 # Check if Claude is available
@@ -93,17 +123,8 @@ case $CHOICE in
     # Create design docs directory if it doesn't exist
     mkdir -p design-docs
 
-    # Check if feature planning script exists
-    if [ -f "scripts/automation/feature-planning.js" ]; then
-      node scripts/automation/feature-planning.js "$FEATURE_NAME" --interactive
-    else
-      # Fallback: use Claude directly with a basic prompt
-      echo "# Feature: $FEATURE_NAME" > "$DESIGN_DOC"
-      echo "" >> "$DESIGN_DOC"
-      echo "[Claude will help fill this in...]" >> "$DESIGN_DOC"
-
-      claude code --file "$DESIGN_DOC" --prompt "Help me plan this feature: $FEATURE_NAME. Ask me questions about requirements, technical approach, testing strategy, and potential challenges."
-    fi
+    # Invoke Feature Planner Agent
+    claude code --agent feature-planner
 
     echo ""
     echo "${GREEN}✓${NC} Feature planning complete!"

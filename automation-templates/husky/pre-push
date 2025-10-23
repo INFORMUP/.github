@@ -2,8 +2,8 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # Pre-push hook: Run full local CI checks and generate PR description
-# Part of InformUp Engineering Automation System
-# Version: 1.0.0
+# Part of InformUp Engineering Automation System (Agent-Based)
+# Version: 2.0.0
 
 # Colors
 RED='\033[0;31m'
@@ -37,89 +37,73 @@ fi
 
 echo "  📍 Branch: $CURRENT_BRANCH"
 
-# 1. Run full test suite with coverage
-echo ""
-echo "  🧪 Running full test suite..."
-if npm test -- --coverage > /dev/null 2>&1; then
-  echo "  ${GREEN}✓${NC} All tests passed"
-
-  # Check coverage threshold
-  if [ -f "coverage/coverage-summary.json" ]; then
-    COVERAGE=$(node -p "try { Math.round(require('./coverage/coverage-summary.json').total.lines.pct) } catch(e) { '0' }")
-    THRESHOLD=$(node -p "try { require('./$CONFIG_FILE').testing.coverageThreshold } catch(e) { '80' }")
-
-    if [ "$COVERAGE" -ge "$THRESHOLD" ]; then
-      echo "  ${GREEN}✓${NC} Coverage: $COVERAGE% (threshold: $THRESHOLD%)"
-    else
-      echo "  ${YELLOW}⚠${NC} Coverage: $COVERAGE% (below threshold: $THRESHOLD%)"
-      echo "  ${YELLOW}Consider adding more tests${NC}"
-    fi
-  fi
-else
-  echo "  ${RED}✗${NC} Tests failed"
-  echo "  ${YELLOW}Run 'npm test' to see failures${NC}"
-  EXIT_CODE=1
-fi
-
-# 2. Run build
-echo ""
-echo "  🔨 Building project..."
-if npm run build --if-present > /dev/null 2>&1; then
-  echo "  ${GREEN}✓${NC} Build successful"
-
-  # Check build size (if configured)
-  if [ -d "build" ] || [ -d "dist" ]; then
-    BUILD_DIR=$([ -d "build" ] && echo "build" || echo "dist")
-    BUILD_SIZE=$(du -sk $BUILD_DIR 2>/dev/null | cut -f1 || echo "0")
-    SIZE_LIMIT=$(node -p "try { require('./$CONFIG_FILE').build.sizeLimitMB * 1024 } catch(e) { '5120' }")
-
-    if [ "$BUILD_SIZE" -le "$SIZE_LIMIT" ]; then
-      echo "  ${GREEN}✓${NC} Build size: ${BUILD_SIZE}KB (limit: ${SIZE_LIMIT}KB)"
-    else
-      echo "  ${YELLOW}⚠${NC} Build size: ${BUILD_SIZE}KB exceeds limit: ${SIZE_LIMIT}KB"
-    fi
-  fi
-else
-  echo "  ${YELLOW}⚠${NC} No build script found or build failed"
-fi
-
-# 3. Run local CI script (if exists)
-if [ -f "scripts/automation/local-ci.js" ]; then
-  echo ""
-  echo "  🔍 Running local CI checks..."
-  if node scripts/automation/local-ci.js; then
-    echo "  ${GREEN}✓${NC} Local CI passed"
-  else
-    echo "  ${RED}✗${NC} Local CI failed"
-    EXIT_CODE=1
-  fi
-fi
-
-# 4. AI-powered checks (if enabled and available)
+# 1. Run Local CI Agent (comprehensive checks)
 if [ "$PRE_PUSH_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1; then
   echo ""
-  echo "  🤖 Running AI-powered reviews..."
+  echo "  🚀 Running Local CI Agent..."
+  echo "     This may take a few minutes..."
+  echo ""
 
-  # Quick security check
-  echo "    🔒 Security review..."
-  # This would call a script that uses Claude for security review
-  # For now, just a placeholder
+  # Invoke Local CI Agent with timeout (5 minutes)
+  if timeout 300s claude code --agent local-ci; then
+    echo ""
+    echo "  ${GREEN}✓${NC} Local CI passed"
+  else
+    CI_EXIT=$?
+    echo ""
+    if [ $CI_EXIT -eq 124 ]; then
+      echo "  ${YELLOW}⚠${NC} Local CI timed out after 5 minutes"
+      echo "  ${YELLOW}Consider optimizing your test suite${NC}"
+    else
+      echo "  ${RED}✗${NC} Local CI failed"
+      echo "  ${YELLOW}Review the output above for details${NC}"
+      EXIT_CODE=1
+    fi
+  fi
+elif [ "$PRE_PUSH_ENABLED" = "true" ]; then
+  # Fallback to basic checks if Claude not available
+  echo ""
+  echo "  🧪 Running basic checks (Claude not available)..."
 
-  # Quick architecture check
-  echo "    🏗️  Architecture review..."
-  # This would call a script that uses Claude for architecture review
-  # For now, just a placeholder
+  # Run tests
+  if npm test -- --coverage > /dev/null 2>&1; then
+    echo "  ${GREEN}✓${NC} Tests passed"
+  else
+    echo "  ${RED}✗${NC} Tests failed"
+    EXIT_CODE=1
+  fi
 
-  echo "  ${GREEN}✓${NC} AI reviews completed"
+  # Run build
+  if npm run build --if-present > /dev/null 2>&1; then
+    echo "  ${GREEN}✓${NC} Build successful"
+  else
+    echo "  ${YELLOW}⚠${NC} Build failed"
+  fi
 fi
 
-# 5. Generate PR description (if feature branch and Claude available)
-if [ "$IS_FEATURE_BRANCH" = "true" ] && [ "$PR_GEN_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1; then
+# 2. Generate PR description (if feature branch and Claude available)
+if [ "$IS_FEATURE_BRANCH" = "true" ] && [ "$PR_GEN_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1 ] && [ $EXIT_CODE -eq 0 ]; then
   echo ""
-  echo "  📝 PR description ready to generate"
-  echo "  ${BLUE}After pushing, run:${NC}"
-  echo "  ${BLUE}  node scripts/automation/pr-generator.js --interactive${NC}"
-  echo "  ${BLUE}  or: gh pr create${NC}"
+  echo "  📝 Would you like to generate a PR description? (y/n)"
+  read -t 10 GEN_PR || GEN_PR="n"
+
+  if [ "$GEN_PR" = "y" ]; then
+    echo ""
+    echo "  🤖 Generating PR description..."
+
+    # Invoke PR Generator Agent
+    claude code --agent pr-generator
+
+    echo ""
+    echo "  ${GREEN}✓${NC} PR description generated"
+    echo "  ${BLUE}You can now:${NC}"
+    echo "  ${BLUE}  - Push with: git push${NC}"
+    echo "  ${BLUE}  - Create PR with: gh pr create${NC}"
+  else
+    echo ""
+    echo "  ${YELLOW}⏭${NC}  Skipping PR generation"
+    echo "  ${BLUE}Generate later with:${NC} claude code --agent pr-generator"
+  fi
 fi
 
 # Summary

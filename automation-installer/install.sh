@@ -1,10 +1,10 @@
 #!/bin/bash
 ###############################################################################
-# InformUp Engineering Automation Installer
-# Version: 1.0.0
+# InformUp Engineering Automation Installer (Agent-Based)
+# Version: 2.0.0
 #
 # This script installs the InformUp automation system in a repository.
-# It sets up git hooks, automation scripts, and configuration.
+# It sets up Claude agents, git hooks, and configuration.
 #
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/INFORMUP/.github/main/automation-installer/install.sh | bash
@@ -187,8 +187,11 @@ create_directories() {
   mkdir -p design-docs
   log_success "Created design-docs/"
 
+  mkdir -p .claude/agents
+  log_success "Created .claude/agents/"
+
   mkdir -p .claude-prompts
-  log_success "Created .claude-prompts/"
+  log_success "Created .claude-prompts/ (for custom overrides)"
 }
 
 ###############################################################################
@@ -199,17 +202,23 @@ copy_templates() {
   log_step "Copying automation templates..."
 
   if [ "$SOURCE_TYPE" = "local" ]; then
-    # Copy from local templates
-    cp -r "$TEMPLATES_DIR/scripts/"* scripts/automation/
-    log_success "Copied automation scripts"
+    # Copy Claude agents (primary automation method)
+    cp "$TEMPLATES_DIR/claude-agents/"*.md .claude/agents/
+    log_success "Copied 11 Claude agent definitions"
+
+    # Copy automation scripts (helper scripts, file watcher)
+    if [ -d "$TEMPLATES_DIR/scripts" ]; then
+      cp -r "$TEMPLATES_DIR/scripts/"* scripts/automation/ 2>/dev/null || true
+      log_info "Copied helper automation scripts"
+    fi
 
     # Initialize Husky
     npx husky install > /dev/null 2>&1
 
-    # Copy git hooks
+    # Copy git hooks (agent-based versions)
     cp "$TEMPLATES_DIR/husky/"* .husky/
     chmod +x .husky/*
-    log_success "Copied and activated git hooks"
+    log_success "Copied and activated agent-based git hooks"
   else
     # Download from remote
     log_warning "Remote installation not yet implemented"
@@ -303,6 +312,15 @@ update_gitignore() {
 test_installation() {
   log_step "Testing installation..."
 
+  # Test Claude agents (primary check)
+  AGENT_COUNT=$(ls -1 .claude/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$AGENT_COUNT" -ge 11 ]; then
+    log_success "Claude agents installed ($AGENT_COUNT agents)"
+  else
+    log_error "Claude agents not found or incomplete (found: $AGENT_COUNT, expected: 11)"
+    return 1
+  fi
+
   # Test Husky
   if [ -d ".husky" ] && [ -f ".husky/pre-commit" ]; then
     log_success "Git hooks installed"
@@ -311,23 +329,21 @@ test_installation() {
     return 1
   fi
 
-  # Test scripts
-  if [ -f "scripts/automation/claude-watcher.js" ]; then
-    log_success "Automation scripts installed"
-  else
-    log_error "Automation scripts not found"
-    return 1
-  fi
-
   # Test config
   if [ -f ".claude-automation-config.json" ]; then
-    log_success "Configuration file created"
+    # Verify it's v2.0.0 config with agent support
+    VERSION=$(node -p "try { require('./.claude-automation-config.json').version } catch(e) { '1.0.0' }")
+    if [ "$VERSION" = "2.0.0" ]; then
+      log_success "Configuration file created (v$VERSION - agent-based)"
+    else
+      log_warning "Configuration is v$VERSION (expected 2.0.0)"
+    fi
   else
     log_error "Configuration not found"
     return 1
   fi
 
-  # Run test script
+  # Test npm scripts
   npm run automation:test > /dev/null 2>&1
   log_success "All tests passed"
 }
@@ -360,13 +376,31 @@ print_next_steps() {
   echo -e "     ${BLUE}https://github.com/INFORMUP/.github/blob/main/docs/GettingStarted.md${NC}"
   echo ""
   echo -e "${CYAN}Installed Components:${NC}"
-  echo -e "  ✓ Git hooks (pre-commit, pre-push, post-checkout)"
-  echo -e "  ✓ Automation scripts (watcher, CI, PR generator)"
-  echo -e "  ✓ Configuration file"
+  echo -e "  ✓ 11 Claude agents (.claude/agents/)"
+  echo -e "  ✓ Agent-based git hooks (pre-commit, pre-push, post-checkout, post-commit)"
+  echo -e "  ✓ Configuration file (v2.0.0 - agent-based)"
   echo -e "  ✓ Directory structure"
   echo ""
+  echo -e "${CYAN}Available Agents:${NC}"
+  echo -e "  • feature-planner      - Interactive feature planning"
+  echo -e "  • code-reviewer        - Quick code review"
+  echo -e "  • pr-generator         - PR description generation"
+  echo -e "  • architecture-reviewer - Design architecture review"
+  echo -e "  • security-auditor     - Security & privacy review"
+  echo -e "  • cost-analyzer        - Resource cost estimation"
+  echo -e "  • test-generator       - Automated test generation"
+  echo -e "  • local-ci             - Full local CI pipeline"
+  echo -e "  • build-diagnostician  - Build failure diagnosis"
+  echo -e "  • error-investigator   - Production error investigation"
+  echo -e "  • documentation        - Documentation maintenance"
+  echo ""
   echo -e "${CYAN}Configuration:${NC}"
-  echo -e "  Edit ${BLUE}.claude-automation-config.json${NC} to customize automation"
+  echo -e "  Edit ${BLUE}.claude-automation-config.json${NC} to enable/disable agents"
+  echo ""
+  echo -e "${CYAN}Manual Agent Usage:${NC}"
+  echo -e "  ${BLUE}claude code --agent feature-planner${NC}"
+  echo -e "  ${BLUE}claude code --agent security-auditor${NC}"
+  echo -e "  ${BLUE}claude code --agent build-diagnostician${NC}"
   echo ""
   echo -e "${GREEN}Happy coding! 🚀${NC}"
   echo ""
@@ -380,8 +414,8 @@ main() {
   echo ""
   echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${CYAN}║                                                            ║${NC}"
-  echo -e "${CYAN}║      InformUp Engineering Automation Installer             ║${NC}"
-  echo -e "${CYAN}║                  Version 1.0.0                             ║${NC}"
+  echo -e "${CYAN}║   InformUp Engineering Automation Installer (Agent-Based)  ║${NC}"
+  echo -e "${CYAN}║                  Version 2.0.0                             ║${NC}"
   echo -e "${CYAN}║                                                            ║${NC}"
   echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
   echo ""

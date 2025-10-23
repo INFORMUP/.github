@@ -2,8 +2,8 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # Post-commit hook: Update documentation in background
-# Part of InformUp Engineering Automation System
-# Version: 1.0.0
+# Part of InformUp Engineering Automation System (Agent-Based)
+# Version: 2.0.0
 
 # Load config
 CONFIG_FILE=".claude-automation-config.json"
@@ -40,10 +40,9 @@ fi
 echo ""
 echo "📚 Updating documentation in background..."
 
-# Run documentation update in background (non-blocking)
-if [ -f "scripts/automation/update-docs.js" ]; then
-  node scripts/automation/update-docs.js &
-  disown
-fi
+# Invoke Documentation Agent in background (non-blocking)
+# The agent will update inline docs, README, and API documentation
+claude code --agent documentation &
+disown
 
 exit 0

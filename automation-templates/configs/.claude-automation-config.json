@@ -1,24 +1,47 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "source": "github.com/INFORMUP/.github",
   "enabled": true,
   "repoType": "frontend",
 
+  "agents": {
+    "directory": ".claude/agents",
+    "fallbackDirectory": "~/.informup-automation/agents",
+    "available": [
+      "feature-planner",
+      "code-reviewer",
+      "pr-generator",
+      "architecture-reviewer",
+      "security-auditor",
+      "cost-analyzer",
+      "test-generator",
+      "local-ci",
+      "build-diagnostician",
+      "error-investigator",
+      "documentation"
+    ]
+  },
+
   "triggers": {
     "featurePlanning": {
       "enabled": true,
-      "branches": ["feature/*"],
+      "agent": "feature-planner",
+      "promptOnAllBranches": false,
+      "branches": ["feature/*", "fix/*", "bugfix/*", "enhancement/*", "hotfix/*"],
       "mode": "interactive",
       "timeout": 300000
     },
     "designReview": {
       "enabled": true,
+      "agents": ["architecture-reviewer", "security-auditor", "cost-analyzer"],
       "files": ["design-docs/**/*.md"],
       "mode": "interactive",
-      "timeout": 600000
+      "timeout": 600000,
+      "sequential": true
     },
     "testGeneration": {
       "enabled": true,
+      "agent": "test-generator",
       "filePattern": "src/**/*.{js,ts,jsx,tsx}",
       "excludePattern": "**/*.test.*",
       "mode": "background",
@@ -26,27 +49,32 @@
     },
     "docGeneration": {
       "enabled": false,
+      "agent": "documentation",
       "mode": "background",
       "debounce": 2000
     },
     "preCommitReview": {
       "enabled": true,
+      "agent": "code-reviewer",
       "quick": true,
       "failOnIssues": false,
       "mode": "blocking",
-      "timeout": 60000
+      "timeout": 30000
     },
     "postCommitDocs": {
       "enabled": false,
+      "agent": "documentation",
       "mode": "background"
     },
     "prePushChecks": {
       "enabled": true,
+      "agent": "local-ci",
       "mode": "blocking",
       "timeout": 300000
     },
     "prGeneration": {
       "enabled": true,
+      "agent": "pr-generator",
       "mode": "interactive"
     }
   },
@@ -78,5 +106,12 @@
   "notifications": {
     "desktop": false,
     "sound": false
+  },
+
+  "_migration": {
+    "from": "1.0.0",
+    "scriptBased": false,
+    "agentBased": true,
+    "migratedAt": null
   }
 }
