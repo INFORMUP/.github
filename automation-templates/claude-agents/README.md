@@ -7,7 +7,7 @@
 
 ## Overview
 
-This directory contains 11 specialized Claude Code agents that automate and assist with every phase of InformUp's engineering workflow. Each agent is a self-contained expert with specific tools and responsibilities.
+This directory contains 12 specialized Claude Code agents that automate and assist with every phase of InformUp's engineering workflow. Each agent is a self-contained expert with specific tools and responsibilities.
 
 ## Agent Architecture
 
@@ -30,6 +30,31 @@ Claude agents are specialized AI assistants with:
 ---
 
 ## Engineering Workflow Mapping
+
+### Phase 0: Workflow Guardrails (NEW!)
+
+**Agent**: [workflow-guardrails.md](./workflow-guardrails.md)
+
+**Trigger**: Proactive (before major actions), manual invocation
+
+**Workflow**:
+```
+Developer starts major action (large commit, wrong branch, etc.)
+        ↓
+Guardrails Agent detects potential issue
+        ↓
+Agent analyzes the situation
+        ↓
+Presents: Current situation, Concern, Recommended action
+        ↓
+User chooses: Follow recommendation or proceed with awareness
+```
+
+**Purpose**: Catch common workflow mistakes before they happen (like doing major refactors on the wrong branch!)
+
+**Replaces**: Nothing - this is a new safety net!
+
+---
 
 ### Phase 1: Feature Planning
 
@@ -243,6 +268,7 @@ Commits documentation updates
 
 | Agent | Role | Trigger | Mode | Replaces |
 |-------|------|---------|------|----------|
+| **workflow-guardrails** | Prevent common workflow mistakes | Proactive/manual | Interactive | New - no equivalent |
 | **feature-planner** | Interactive feature planning | post-checkout | Interactive | feature-planning.js |
 | **architecture-reviewer** | Design architecture review | Design review | Interactive | architecture-review.md |
 | **security-auditor** | Security & privacy review | Design review | Blocking | security-review.md |
@@ -578,6 +604,11 @@ cat .claude-automation-config.json | jq '.triggers.featurePlanning.enabled'
 ---
 
 ## Version History
+
+### v1.1.0 (2025-01-22)
+
+Added workflow guardrails agent:
+- **Workflow Guardrails**: NEW - Prevents common workflow mistakes (wrong branch, large commits, missing tests, etc.)
 
 ### v1.0.0 (2025-01-22)
 

@@ -8,6 +8,7 @@
     "directory": ".claude/agents",
     "fallbackDirectory": "~/.informup-automation/agents",
     "available": [
+      "workflow-guardrails",
       "feature-planner",
       "code-reviewer",
       "pr-generator",
@@ -20,6 +21,26 @@
       "error-investigator",
       "documentation"
     ]
+  },
+
+  "guardrails": {
+    "enabled": true,
+    "strictness": "medium",
+    "autoActivate": {
+      "largePRs": true,
+      "branchManagement": true,
+      "breakingChanges": true,
+      "security": true,
+      "deployment": true,
+      "missingTests": true
+    },
+    "thresholds": {
+      "largeCommitLines": 500,
+      "largeCommitFiles": 10,
+      "largePRLines": 2000,
+      "largePRFiles": 30,
+      "coverageMinimum": 80
+    }
   },
 
   "triggers": {

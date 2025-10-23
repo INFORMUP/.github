@@ -14,12 +14,13 @@ Successfully refactored the InformUp engineering automation system from a script
 
 ## What Was Delivered
 
-### 1. **11 Specialized Claude Agents** ✅
+### 1. **12 Specialized Claude Agents** ✅
 
 Created comprehensive agent definitions in `automation-templates/claude-agents/`:
 
 | Agent | Purpose | Trigger | Status |
 |-------|---------|---------|--------|
+| **workflow-guardrails** | Prevent workflow mistakes | Proactive/manual | ✅ Complete ⭐ NEW |
 | **feature-planner** | Interactive feature planning | post-checkout | ✅ Complete |
 | **code-reviewer** | Quick pre-commit code review | pre-commit | ✅ Complete |
 | **pr-generator** | Generate PR descriptions | pre-push | ✅ Complete |

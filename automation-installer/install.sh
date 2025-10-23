@@ -314,10 +314,10 @@ test_installation() {
 
   # Test Claude agents (primary check)
   AGENT_COUNT=$(ls -1 .claude/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$AGENT_COUNT" -ge 11 ]; then
+  if [ "$AGENT_COUNT" -ge 12 ]; then
     log_success "Claude agents installed ($AGENT_COUNT agents)"
   else
-    log_error "Claude agents not found or incomplete (found: $AGENT_COUNT, expected: 11)"
+    log_error "Claude agents not found or incomplete (found: $AGENT_COUNT, expected: 12)"
     return 1
   fi
 
@@ -376,12 +376,13 @@ print_next_steps() {
   echo -e "     ${BLUE}https://github.com/INFORMUP/.github/blob/main/docs/GettingStarted.md${NC}"
   echo ""
   echo -e "${CYAN}Installed Components:${NC}"
-  echo -e "  ✓ 11 Claude agents (.claude/agents/)"
+  echo -e "  ✓ 12 Claude agents (.claude/agents/)"
   echo -e "  ✓ Agent-based git hooks (pre-commit, pre-push, post-checkout, post-commit)"
   echo -e "  ✓ Configuration file (v2.0.0 - agent-based)"
   echo -e "  ✓ Directory structure"
   echo ""
   echo -e "${CYAN}Available Agents:${NC}"
+  echo -e "  • workflow-guardrails  - Prevent workflow mistakes ⭐ NEW"
   echo -e "  • feature-planner      - Interactive feature planning"
   echo -e "  • code-reviewer        - Quick code review"
   echo -e "  • pr-generator         - PR description generation"
