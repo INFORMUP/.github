@@ -306,6 +306,382 @@ update_gitignore() {
 }
 
 ###############################################################################
+# Create or Update CLAUDE.md
+###############################################################################
+
+create_claude_documentation() {
+  log_step "Creating CLAUDE.md documentation..."
+
+  REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+  INSTALL_DATE=$(date +%Y-%m-%d)
+  AUTHOR=$(git config user.name || echo "Unknown")
+
+  cat > CLAUDE.md << 'HEREDOC'
+# Claude Code Automation Guide
+
+**Repository**: {{REPO_NAME}}
+**Automation Version**: 2.0.0 (Agent-Based)
+**Installed**: {{INSTALL_DATE}}
+**Repository Type**: {{REPO_TYPE}}
+
+---
+
+## What's Installed
+
+This repository has the **InformUp Engineering Automation System** installed, which provides AI-powered assistance throughout your development workflow using Claude Code agents.
+
+### 12 Available Agents
+
+| Agent | What It Does | How to Use |
+|-------|--------------|------------|
+| 🚧 **workflow-guardrails** | Catches workflow mistakes (wrong branch, large commits, etc.) | Automatic or `claude code --agent workflow-guardrails` |
+| 🎨 **feature-planner** | Helps plan new features interactively | Automatic on new feature branches |
+| 🔍 **code-reviewer** | Quick code review before commits | Automatic on `git commit` |
+| 📝 **pr-generator** | Generates PR descriptions | Automatic on `git push` (optional) |
+| 🏗️ **architecture-reviewer** | Reviews design documents for architecture | `claude code --agent architecture-reviewer` |
+| 🔒 **security-auditor** | Security and privacy review | `claude code --agent security-auditor` |
+| 💰 **cost-analyzer** | Estimates resource costs | `claude code --agent cost-analyzer` |
+| 🧪 **test-generator** | Generates test files automatically | Automatic or `claude code --agent test-generator` |
+| 🚀 **local-ci** | Runs full CI pipeline locally | Automatic on `git push` |
+| 🔧 **build-diagnostician** | Diagnoses build failures | `claude code --agent build-diagnostician` |
+| 🚨 **error-investigator** | Investigates production errors | `claude code --agent error-investigator` |
+| 📚 **documentation** | Maintains documentation | Automatic (background) |
+
+---
+
+## Automatic Workflows
+
+The automation system triggers automatically at key points:
+
+### When You Create a Feature Branch
+
+```bash
+git checkout -b feature/my-new-feature
+```
+
+→ **Feature Planner** agent starts an interactive session to help you plan
+
+### When You Commit
+
+```bash
+git commit -m "feat: Add new feature"
+```
+
+→ **Code Reviewer** agent checks for issues (runs in <30 seconds)
+
+### When You Push
+
+```bash
+git push origin feature/my-new-feature
+```
+
+→ **Local CI** agent runs tests, linting, build checks
+→ **PR Generator** agent offers to create PR description
+
+---
+
+## Manual Usage
+
+Invoke any agent manually when you need help:
+
+```bash
+# Get help planning a feature
+claude code --agent feature-planner
+
+# Review your design document
+claude code --agent architecture-reviewer
+
+# Check security of your changes
+claude code --agent security-auditor
+
+# Estimate costs of your feature
+claude code --agent cost-analyzer
+
+# Generate tests for a file
+claude code --agent test-generator --file src/myfile.ts
+
+# Diagnose a build failure
+claude code --agent build-diagnostician
+
+# Investigate an error
+claude code --agent error-investigator
+
+# Check if you're about to make a workflow mistake
+claude code --agent workflow-guardrails
+```
+
+---
+
+## Configuration
+
+Edit `.claude-automation-config.json` to customize automation:
+
+```json
+{
+  "triggers": {
+    "featurePlanning": {
+      "enabled": true,     // Enable/disable feature planning
+      "mode": "interactive"
+    },
+    "preCommitReview": {
+      "enabled": true,     // Enable/disable code review
+      "quick": true,       // Quick mode (30s) vs thorough
+      "failOnIssues": false // Warn or block on issues
+    }
+  },
+  "testing": {
+    "coverageThreshold": 80  // Minimum test coverage (%)
+  }
+}
+```
+
+### Common Customizations
+
+**Disable test generation** (if you prefer manual):
+```json
+{
+  "triggers": {
+    "testGeneration": {
+      "enabled": false
+    }
+  }
+}
+```
+
+**Make code review more strict**:
+```json
+{
+  "triggers": {
+    "preCommitReview": {
+      "quick": false,         // Thorough review
+      "failOnIssues": true    // Block on warnings
+    }
+  }
+}
+```
+
+**Disable local CI** (run only in GitHub Actions):
+```json
+{
+  "triggers": {
+    "prePushChecks": {
+      "enabled": false
+    }
+  }
+}
+```
+
+---
+
+## Skipping Automation
+
+Sometimes you need to bypass the automation:
+
+### Skip Pre-Commit Checks
+
+```bash
+git commit --no-verify -m "Emergency fix"
+```
+
+### Skip Pre-Push Checks
+
+```bash
+git push --no-verify
+```
+
+**Note**: Use sparingly! The checks are there to help you.
+
+---
+
+## Troubleshooting
+
+### Hooks Not Running
+
+```bash
+# Make hooks executable
+chmod +x .husky/*
+
+# Reinstall Husky
+npx husky install
+```
+
+### Agent Not Found
+
+```bash
+# Check agents are installed
+ls .claude/agents/
+
+# Should see 12 .md files
+```
+
+### Claude Code Not Installed
+
+```bash
+# Install Claude Code CLI
+npm install -g @anthropic/claude-code
+
+# Authenticate
+claude auth login
+
+# Verify
+claude --version
+```
+
+### Hooks Taking Too Long
+
+Adjust timeouts in `.claude-automation-config.json`:
+
+```json
+{
+  "triggers": {
+    "preCommitReview": {
+      "timeout": 60000  // Increase from 30s to 60s
+    }
+  }
+}
+```
+
+---
+
+## Development Workflow Examples
+
+### Starting a New Feature
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/newsletter-signup
+
+# → Feature Planner agent starts automatically
+# → Answer questions to generate design doc
+
+# 2. Write code
+# (develop your feature)
+
+# 3. Commit frequently
+git add .
+git commit -m "feat: Add signup form"
+
+# → Code Reviewer checks your changes
+
+# 4. Push when ready
+git push origin feature/newsletter-signup
+
+# → Local CI runs full checks
+# → PR Generator offers to create PR
+
+# 5. Create PR
+gh pr create
+```
+
+### Fixing a Bug
+
+```bash
+# 1. Create fix branch
+git checkout -b fix/signup-validation
+
+# 2. Make your fix
+# (edit code)
+
+# 3. Commit
+git commit -m "fix: Correct email validation"
+
+# → Code Reviewer checks the fix
+
+# 4. Push
+git push
+
+# → Local CI verifies the fix works
+```
+
+### Investigating Production Errors
+
+```bash
+# Get error details from logs/monitoring
+# Then invoke the error investigator
+
+claude code --agent error-investigator
+
+# Agent will ask for:
+# - Error message
+# - Stack trace
+# - When it occurred
+# - User impact
+# Then provide diagnosis and fix recommendations
+```
+
+---
+
+## Learning Resources
+
+- **Engineering Overview**: `docs/EngineeringOverview.md` (if available)
+- **Agent Documentation**: `.claude/agents/README.md`
+- **Migration Guide**: See `.github` repository
+- **InformUp Docs**: [https://github.com/INFORMUP/.github](https://github.com/INFORMUP/.github)
+
+---
+
+## Getting Help
+
+**Questions or Issues**:
+- GitHub Issues: [Create an issue](https://github.com/INFORMUP/.github/issues)
+- Slack: #engineering
+- Email: engineering@informup.org
+
+**Disable Automation**:
+If you need to disable automation temporarily or permanently:
+
+```json
+// .claude-automation-config.json
+{
+  "enabled": false  // Disables all automation
+}
+```
+
+Or per-developer:
+```bash
+export CLAUDE_AUTOMATION_ENABLED=false
+```
+
+---
+
+## What Makes This Special
+
+This automation system is designed for InformUp's unique needs:
+
+- **Volunteer-Friendly**: Helps engineers at all skill levels contribute safely
+- **Mission-Aligned**: Focuses on code quality without slowing down impact
+- **Cost-Effective**: Uses Claude Pro subscription, not pay-per-token
+- **Local-First**: Runs on your machine, code stays private
+- **Educational**: Teaches best practices while you work
+
+---
+
+**Installed by**: {{AUTHOR}}
+**Installation Date**: {{INSTALL_DATE}}
+**Version**: 2.0.0
+
+For updates, see: [https://github.com/INFORMUP/.github/blob/main/automation-installer/install.sh](https://github.com/INFORMUP/.github/blob/main/automation-installer/install.sh)
+HEREDOC
+
+  # Replace variables
+  if [ "$(uname)" = "Darwin" ]; then
+    # macOS
+    sed -i '' "s/{{REPO_NAME}}/${REPO_NAME}/g" CLAUDE.md
+    sed -i '' "s/{{INSTALL_DATE}}/${INSTALL_DATE}/g" CLAUDE.md
+    sed -i '' "s/{{REPO_TYPE}}/${REPO_TYPE}/g" CLAUDE.md
+    sed -i '' "s/{{AUTHOR}}/${AUTHOR}/g" CLAUDE.md
+  else
+    # Linux
+    sed -i "s/{{REPO_NAME}}/${REPO_NAME}/g" CLAUDE.md
+    sed -i "s/{{INSTALL_DATE}}/${INSTALL_DATE}/g" CLAUDE.md
+    sed -i "s/{{REPO_TYPE}}/${REPO_TYPE}/g" CLAUDE.md
+    sed -i "s/{{AUTHOR}}/${AUTHOR}/g" CLAUDE.md
+  fi
+
+  log_success "Created CLAUDE.md documentation"
+}
+
+###############################################################################
 # Test Installation
 ###############################################################################
 
@@ -373,6 +749,7 @@ print_next_steps() {
   echo -e "     ${BLUE}git checkout -b feature/test-automation${NC}"
   echo ""
   echo -e "  ${YELLOW}4.${NC} Read the documentation:"
+  echo -e "     ${BLUE}cat CLAUDE.md${NC} (quick reference in this repo)"
   echo -e "     ${BLUE}https://github.com/INFORMUP/.github/blob/main/docs/GettingStarted.md${NC}"
   echo ""
   echo -e "${CYAN}Installed Components:${NC}"
@@ -380,6 +757,7 @@ print_next_steps() {
   echo -e "  ✓ Agent-based git hooks (pre-commit, pre-push, post-checkout, post-commit)"
   echo -e "  ✓ Configuration file (v2.0.0 - agent-based)"
   echo -e "  ✓ Directory structure"
+  echo -e "  ✓ CLAUDE.md documentation guide"
   echo ""
   echo -e "${CYAN}Available Agents:${NC}"
   echo -e "  • workflow-guardrails  - Prevent workflow mistakes ⭐ NEW"
@@ -429,6 +807,7 @@ main() {
   create_config
   update_package_json
   update_gitignore
+  create_claude_documentation
   test_installation
   print_next_steps
 
