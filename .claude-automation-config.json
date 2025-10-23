@@ -1,0 +1,116 @@
+{
+  "version": "2.0.0",
+  "source": "github.com/INFORMUP/.github",
+  "enabled": true,
+  "repoType": "templates",
+
+  "agents": {
+    "directory": ".claude/agents",
+    "available": [
+      "workflow-guardrails",
+      "feature-planner",
+      "code-reviewer",
+      "pr-generator",
+      "architecture-reviewer",
+      "security-auditor",
+      "cost-analyzer",
+      "test-generator",
+      "local-ci",
+      "build-diagnostician",
+      "error-investigator",
+      "documentation"
+    ]
+  },
+
+  "guardrails": {
+    "enabled": true,
+    "strictness": "medium",
+    "autoActivate": {
+      "largePRs": true,
+      "branchManagement": true,
+      "breakingChanges": true,
+      "security": true,
+      "deployment": false,
+      "missingTests": false
+    },
+    "thresholds": {
+      "largeCommitLines": 500,
+      "largeCommitFiles": 10,
+      "largePRLines": 2000,
+      "largePRFiles": 30,
+      "coverageMinimum": 0
+    }
+  },
+
+  "triggers": {
+    "featurePlanning": {
+      "enabled": true,
+      "agent": "feature-planner",
+      "branches": ["feature/*", "fix/*", "enhancement/*"],
+      "mode": "interactive"
+    },
+    "designReview": {
+      "enabled": true,
+      "agents": ["architecture-reviewer", "security-auditor"],
+      "mode": "interactive"
+    },
+    "testGeneration": {
+      "enabled": false,
+      "agent": "test-generator",
+      "mode": "background"
+    },
+    "docGeneration": {
+      "enabled": false,
+      "agent": "documentation",
+      "mode": "background"
+    },
+    "preCommitReview": {
+      "enabled": true,
+      "agent": "code-reviewer",
+      "quick": true,
+      "failOnIssues": false,
+      "mode": "blocking",
+      "timeout": 30000
+    },
+    "postCommitDocs": {
+      "enabled": false,
+      "agent": "documentation",
+      "mode": "background"
+    },
+    "prePushChecks": {
+      "enabled": false,
+      "agent": "local-ci",
+      "mode": "blocking"
+    },
+    "prGeneration": {
+      "enabled": true,
+      "agent": "pr-generator",
+      "mode": "interactive"
+    }
+  },
+
+  "testing": {
+    "command": "echo 'No tests required for templates repository'",
+    "coverageCommand": "echo 'Coverage not applicable'",
+    "coverageThreshold": 0,
+    "required": false
+  },
+
+  "build": {
+    "command": "echo 'No build required for templates repository'",
+    "required": false
+  },
+
+  "claude": {
+    "model": "claude-3-5-sonnet-20241022",
+    "timeout": 60000,
+    "maxTokens": 4096
+  },
+
+  "notifications": {
+    "desktop": false,
+    "sound": false
+  },
+
+  "_note": "This is the .github templates repository. Test/build requirements are disabled since this repo contains templates, not production code. When these templates are installed in other repos, those repos will have their own test requirements."
+}

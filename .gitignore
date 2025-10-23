@@ -1,0 +1,22 @@
+# Node modules (if automation is installed here for dogfooding)
+node_modules/
+
+# Claude Automation logs
+.claude-automation.log
+.claude-cache/
+.pr-description.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+.tmp/
