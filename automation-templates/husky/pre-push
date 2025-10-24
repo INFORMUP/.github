@@ -54,7 +54,7 @@ if [ "$PRE_PUSH_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1; then
   echo ""
 
   # Invoke Local CI Agent with $TIMEOUT_CMD (5 minutes)
-  if $TIMEOUT_CMD 300s claude --agent local-ci; then
+  if $TIMEOUT_CMD 300s claude -p "use the local-ci agent to run full CI checks"; then
     echo ""
     echo "  ${GREEN}✓${NC} Local CI passed"
   else
@@ -101,7 +101,7 @@ if [ "$IS_FEATURE_BRANCH" = "true" ] && [ "$PR_GEN_ENABLED" = "true" ] && comman
     echo "  🤖 Generating PR description..."
 
     # Invoke PR Generator Agent
-    claude --agent pr-generator
+    claude -p "use the pr-generator agent to create a PR description"
 
     echo ""
     echo "  ${GREEN}✓${NC} PR description generated"
@@ -111,7 +111,7 @@ if [ "$IS_FEATURE_BRANCH" = "true" ] && [ "$PR_GEN_ENABLED" = "true" ] && comman
   else
     echo ""
     echo "  ${YELLOW}⏭${NC}  Skipping PR generation"
-    echo "  ${BLUE}Generate later with:${NC} claude --agent pr-generator"
+    echo "  ${BLUE}Generate later with:${NC} claude -p "use the pr-generator agent to create a PR description""
   fi
 fi
 

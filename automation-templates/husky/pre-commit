@@ -95,7 +95,7 @@ if [ "$PRE_COMMIT_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1; the
 
   if [ -n "$STAGED_FILES" ]; then
     # Invoke Code Reviewer Agent with $TIMEOUT_CMD (30 seconds for quick mode)
-    if $TIMEOUT_CMD 30s claude --agent code-reviewer 2>/dev/null; then
+    if $TIMEOUT_CMD 30s claude -p "use the code-reviewer agent to review the staged changes" 2>/dev/null; then
       echo "  ${GREEN}✓${NC} AI review passed"
     else
       REVIEW_EXIT=$?
