@@ -2,9 +2,9 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # Cross-platform $TIMEOUT_CMD command
-if command -v g$TIMEOUT_CMD > /dev/null 2>&1; then
+if command -v gtimeout > /dev/null 2>&1; then
   TIMEOUT_CMD="gtimeout"
-elif command -v $TIMEOUT_CMD > /dev/null 2>&1; then
+elif command -v timeout > /dev/null 2>&1; then
   TIMEOUT_CMD="timeout"
 else
   TIMEOUT_CMD=""
