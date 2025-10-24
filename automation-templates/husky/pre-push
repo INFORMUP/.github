@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Cross-platform $TIMEOUT_CMD command
+if command -v g$TIMEOUT_CMD > /dev/null 2>&1; then
+  TIMEOUT_CMD="gtimeout"
+elif command -v $TIMEOUT_CMD > /dev/null 2>&1; then
+  TIMEOUT_CMD="timeout"
+else
+  TIMEOUT_CMD=""
+fi
+
 # Pre-push hook: Run full local CI checks and generate PR description
 # Part of InformUp Engineering Automation System (Agent-Based)
 # Version: 2.0.0
@@ -44,8 +53,8 @@ if [ "$PRE_PUSH_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1; then
   echo "     This may take a few minutes..."
   echo ""
 
-  # Invoke Local CI Agent with timeout (5 minutes)
-  if timeout 300s claude code --agent local-ci; then
+  # Invoke Local CI Agent with $TIMEOUT_CMD (5 minutes)
+  if $TIMEOUT_CMD 300s claude code --agent local-ci; then
     echo ""
     echo "  ${GREEN}✓${NC} Local CI passed"
   else

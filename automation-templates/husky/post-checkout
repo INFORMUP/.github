@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Cross-platform $TIMEOUT_CMD command
+if command -v g$TIMEOUT_CMD > /dev/null 2>&1; then
+  TIMEOUT_CMD="gtimeout"
+elif command -v $TIMEOUT_CMD > /dev/null 2>&1; then
+  TIMEOUT_CMD="timeout"
+else
+  TIMEOUT_CMD=""
+fi
+
 # Post-checkout hook: Trigger feature planning for new branches
 # Part of InformUp Engineering Automation System (Agent-Based)
 # Version: 2.0.0

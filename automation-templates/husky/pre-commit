@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Cross-platform $TIMEOUT_CMD command
+if command -v g$TIMEOUT_CMD > /dev/null 2>&1; then
+  TIMEOUT_CMD="gtimeout"
+elif command -v $TIMEOUT_CMD > /dev/null 2>&1; then
+  TIMEOUT_CMD="timeout"
+else
+  TIMEOUT_CMD=""
+fi
+
 # Pre-commit hook: Run linting, formatting, tests, and optional AI review
 # Part of InformUp Engineering Automation System (Agent-Based)
 # Version: 2.0.0
@@ -85,8 +94,8 @@ if [ "$PRE_COMMIT_ENABLED" = "true" ] && command -v claude > /dev/null 2>&1; the
   STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' || true)
 
   if [ -n "$STAGED_FILES" ]; then
-    # Invoke Code Reviewer Agent with timeout (30 seconds for quick mode)
-    if timeout 30s claude code --agent code-reviewer 2>/dev/null; then
+    # Invoke Code Reviewer Agent with $TIMEOUT_CMD (30 seconds for quick mode)
+    if $TIMEOUT_CMD 30s claude code --agent code-reviewer 2>/dev/null; then
       echo "  ${GREEN}✓${NC} AI review passed"
     else
       REVIEW_EXIT=$?
