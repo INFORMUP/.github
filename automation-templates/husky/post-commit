@@ -42,7 +42,7 @@ echo "📚 Updating documentation in background..."
 
 # Invoke Documentation Agent in background (non-blocking)
 # The agent will update inline docs, README, and API documentation
-claude code --agent documentation &
+claude --agent documentation &
 disown
 
 exit 0

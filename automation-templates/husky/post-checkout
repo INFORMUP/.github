@@ -133,7 +133,7 @@ case $CHOICE in
     mkdir -p design-docs
 
     # Invoke Feature Planner Agent
-    claude code --agent feature-planner
+    claude --agent feature-planner
 
     echo ""
     echo "${GREEN}✓${NC} Feature planning complete!"
