@@ -1,19 +1,31 @@
 #!/bin/bash
 ###############################################################################
-# InformUp Engineering Automation Installer (Agent-Based)
+# InformUp Engineering Automation Installer (Hybrid Model)
 # Version: 2.0.0
 #
-# This script installs the InformUp automation system in a repository.
-# It sets up Claude agents, git hooks, and configuration.
+# This script installs the InformUp hybrid automation system in a repository.
+# It sets up Claude agents, git hooks, and hybrid model configuration.
+#
+# Features:
+#   - Fresh installation of v2.0 (Hybrid Model)
+#   - Automatic upgrade from v1.0 to v2.0
+#   - Preserves user customizations during upgrades
 #
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/INFORMUP/.github/main/automation-installer/install.sh | bash
 #
 # Or locally:
-#   bash install.sh
+#   bash install.sh [--upgrade]
+#
 ###############################################################################
 
 set -e  # Exit on error
+
+# Check for flags
+UPGRADE_MODE=false
+if [[ "$1" == "--upgrade" ]]; then
+  UPGRADE_MODE=true
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -190,6 +202,9 @@ create_directories() {
   mkdir -p .claude/agents
   log_success "Created .claude/agents/"
 
+  mkdir -p .claude/skills
+  log_success "Created .claude/skills/"
+
   mkdir -p .claude-prompts
   log_success "Created .claude-prompts/ (for custom overrides)"
 }
@@ -204,7 +219,15 @@ copy_templates() {
   if [ "$SOURCE_TYPE" = "local" ]; then
     # Copy Claude agents (primary automation method)
     cp "$TEMPLATES_DIR/claude-agents/"*.md .claude/agents/
-    log_success "Copied 11 Claude agent definitions"
+    log_success "Copied Claude agent definitions"
+
+    # Copy Hybrid Model skill
+    if [ -f "$SCRIPT_DIR/../.claude/skills/informup-engineering-excellence.md" ]; then
+      cp "$SCRIPT_DIR/../.claude/skills/informup-engineering-excellence.md" .claude/skills/
+      log_success "Copied Hybrid Model skill"
+    else
+      log_warning "Hybrid Model skill not found, skipping"
+    fi
 
     # Copy automation scripts (helper scripts, file watcher)
     if [ -d "$TEMPLATES_DIR/scripts" ]; then
@@ -218,7 +241,7 @@ copy_templates() {
     # Copy git hooks (agent-based versions)
     cp "$TEMPLATES_DIR/husky/"* .husky/
     chmod +x .husky/*
-    log_success "Copied and activated agent-based git hooks"
+    log_success "Copied and activated git hooks"
   else
     # Download from remote
     log_warning "Remote installation not yet implemented"
@@ -228,30 +251,134 @@ copy_templates() {
 }
 
 ###############################################################################
+# Detect Existing Installation
+###############################################################################
+
+detect_existing_installation() {
+  log_step "Checking for existing installation..."
+
+  if [ ! -f ".claude-automation-config.json" ]; then
+    log_info "No existing installation found"
+    EXISTING_VERSION="none"
+    return 0
+  fi
+
+  # Check version
+  EXISTING_VERSION=$(node -p "try { require('./.claude-automation-config.json').version } catch(e) { '1.0.0' }" 2>/dev/null || echo "1.0.0")
+
+  # Check for hybrid model
+  HAS_HYBRID=$(node -p "try { require('./.claude-automation-config.json').operatingModel === 'hybrid' } catch(e) { false }" 2>/dev/null || echo "false")
+
+  if [ "$EXISTING_VERSION" = "2.0.0" ] && [ "$HAS_HYBRID" = "true" ]; then
+    log_success "Hybrid Model v2.0 already installed"
+    NEEDS_UPGRADE=false
+  elif [ "$EXISTING_VERSION" = "2.0.0" ]; then
+    log_warning "v2.0 installed but not hybrid model - will upgrade to hybrid"
+    NEEDS_UPGRADE=true
+  else
+    log_warning "v$EXISTING_VERSION installed - will upgrade to v2.0 (Hybrid Model)"
+    NEEDS_UPGRADE=true
+  fi
+}
+
+###############################################################################
+# Backup Existing Configuration
+###############################################################################
+
+backup_config() {
+  if [ ! -f ".claude-automation-config.json" ]; then
+    return 0
+  fi
+
+  log_step "Backing up existing configuration..."
+
+  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+  cp .claude-automation-config.json ".claude-automation-config.json.backup_${TIMESTAMP}"
+
+  log_success "Backed up to .claude-automation-config.json.backup_${TIMESTAMP}"
+}
+
+###############################################################################
+# Upgrade Configuration to Hybrid Model
+###############################################################################
+
+upgrade_config_to_hybrid() {
+  log_step "Upgrading configuration to Hybrid Model v2.0..."
+
+  # Read existing config to preserve customizations
+  if [ -f ".claude-automation-config.json" ]; then
+    # Extract custom settings we want to preserve
+    CUSTOM_REPO_TYPE=$(node -p "try { require('./.claude-automation-config.json').repoType || 'unknown' } catch(e) { 'unknown' }" 2>/dev/null || echo "unknown")
+    CUSTOM_ENABLED=$(node -p "try { require('./.claude-automation-config.json').enabled !== false } catch(e) { true }" 2>/dev/null || echo "true")
+  else
+    CUSTOM_REPO_TYPE="$REPO_TYPE"
+    CUSTOM_ENABLED="true"
+  fi
+
+  # Copy new hybrid config from .github repo
+  if [ -f "$SCRIPT_DIR/../.claude-automation-config.json" ]; then
+    cp "$SCRIPT_DIR/../.claude-automation-config.json" .claude-automation-config.json
+  else
+    log_error "Hybrid model config template not found"
+    return 1
+  fi
+
+  # Restore customizations
+  if [ "$(uname)" = "Darwin" ]; then
+    # macOS
+    sed -i '' "s/\"repoType\": \"templates\"/\"repoType\": \"$CUSTOM_REPO_TYPE\"/" .claude-automation-config.json
+    # Remove the _note about templates
+    node -p "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('.claude-automation-config.json')); delete c._note; JSON.stringify(c,null,2)" > .claude-automation-config.json.tmp && mv .claude-automation-config.json.tmp .claude-automation-config.json
+  else
+    # Linux
+    sed -i "s/\"repoType\": \"templates\"/\"repoType\": \"$CUSTOM_REPO_TYPE\"/" .claude-automation-config.json
+    node -p "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('.claude-automation-config.json')); delete c._note; JSON.stringify(c,null,2)" > .claude-automation-config.json.tmp && mv .claude-automation-config.json.tmp .claude-automation-config.json
+  fi
+
+  log_success "Upgraded configuration to Hybrid Model v2.0"
+  log_info "Preserved settings: repoType=$CUSTOM_REPO_TYPE"
+}
+
+###############################################################################
 # Create Configuration
 ###############################################################################
 
 create_config() {
   log_step "Creating configuration..."
 
-  if [ -f ".claude-automation-config.json" ]; then
-    log_warning ".claude-automation-config.json already exists. Skipping."
-    return
+  # Check if needs upgrade
+  if [ "$NEEDS_UPGRADE" = "true" ]; then
+    backup_config
+    upgrade_config_to_hybrid
+    return 0
   fi
 
-  # Copy default config and customize
-  cp "$TEMPLATES_DIR/configs/.claude-automation-config.json" .claude-automation-config.json
+  if [ -f ".claude-automation-config.json" ]; then
+    log_warning ".claude-automation-config.json already exists. Skipping."
+    return 0
+  fi
+
+  # Fresh installation - copy hybrid config
+  if [ -f "$SCRIPT_DIR/../.claude-automation-config.json" ]; then
+    cp "$SCRIPT_DIR/../.claude-automation-config.json" .claude-automation-config.json
+  else
+    log_error "Hybrid model config template not found"
+    return 1
+  fi
 
   # Update repo type
   if [ "$(uname)" = "Darwin" ]; then
     # macOS
-    sed -i '' "s/\"repoType\": \"frontend\"/\"repoType\": \"$REPO_TYPE\"/" .claude-automation-config.json
+    sed -i '' "s/\"repoType\": \"templates\"/\"repoType\": \"$REPO_TYPE\"/" .claude-automation-config.json
+    # Remove the _note about templates
+    node -p "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('.claude-automation-config.json')); delete c._note; JSON.stringify(c,null,2)" > .claude-automation-config.json.tmp && mv .claude-automation-config.json.tmp .claude-automation-config.json
   else
     # Linux
-    sed -i "s/\"repoType\": \"frontend\"/\"repoType\": \"$REPO_TYPE\"/" .claude-automation-config.json
+    sed -i "s/\"repoType\": \"templates\"/\"repoType\": \"$REPO_TYPE\"/" .claude-automation-config.json
+    node -p "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('.claude-automation-config.json')); delete c._note; JSON.stringify(c,null,2)" > .claude-automation-config.json.tmp && mv .claude-automation-config.json.tmp .claude-automation-config.json
   fi
 
-  log_success "Created .claude-automation-config.json"
+  log_success "Created .claude-automation-config.json (Hybrid Model v2.0)"
 }
 
 ###############################################################################
@@ -306,75 +433,28 @@ update_gitignore() {
 }
 
 ###############################################################################
-# Create or Update CLAUDE.md
+# Create or Update CLAUDE.md (Hybrid Model)
 ###############################################################################
 
 create_claude_documentation() {
-  log_step "Creating CLAUDE.md documentation..."
+  log_step "Installing CLAUDE.md (Hybrid Model enforcement)..."
 
-  REPO_NAME=$(basename $(git rev-parse --show-toplevel))
-  INSTALL_DATE=$(date +%Y-%m-%d)
-  AUTHOR=$(git config user.name || echo "Unknown")
+  # Copy the hybrid model CLAUDE.md from .github repo
+  if [ -f "$SCRIPT_DIR/../CLAUDE.md" ]; then
+    if [ -f "CLAUDE.md" ]; then
+      # Backup existing CLAUDE.md
+      TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+      mv CLAUDE.md "CLAUDE.md.backup_${TIMESTAMP}"
+      log_info "Backed up existing CLAUDE.md"
+    fi
 
-  cat > CLAUDE.md << 'HEREDOC'
-# Claude Code Automation Guide
-
-**Repository**: {{REPO_NAME}}
-**Automation Version**: 2.0.0 (Agent-Based)
-**Installed**: {{INSTALL_DATE}}
-**Repository Type**: {{REPO_TYPE}}
-
----
-
-## What's Installed
-
-This repository has the **InformUp Engineering Automation System** installed, which provides AI-powered assistance throughout your development workflow using Claude Code agents.
-
-### 12 Available Agents
-
-| Agent | What It Does | How to Use |
-|-------|--------------|------------|
-| 🚧 **workflow-guardrails** | Catches workflow mistakes (wrong branch, large commits, etc.) | Automatic or `claude code --agent workflow-guardrails` |
-| 🎨 **feature-planner** | Helps plan new features interactively | Automatic on new feature branches |
-| 🔍 **code-reviewer** | Quick code review before commits | Automatic on `git commit` |
-| 📝 **pr-generator** | Generates PR descriptions | Automatic on `git push` (optional) |
-| 🏗️ **architecture-reviewer** | Reviews design documents for architecture | `claude code --agent architecture-reviewer` |
-| 🔒 **security-auditor** | Security and privacy review | `claude code --agent security-auditor` |
-| 💰 **cost-analyzer** | Estimates resource costs | `claude code --agent cost-analyzer` |
-| 🧪 **test-generator** | Generates test files automatically | Automatic or `claude code --agent test-generator` |
-| 🚀 **local-ci** | Runs full CI pipeline locally | Automatic on `git push` |
-| 🔧 **build-diagnostician** | Diagnoses build failures | `claude code --agent build-diagnostician` |
-| 🚨 **error-investigator** | Investigates production errors | `claude code --agent error-investigator` |
-| 📚 **documentation** | Maintains documentation | Automatic (background) |
-
----
-
-## Document everything
-
-For each task the user kicks off, create a high level plan. After each turn or prompt to the user, update that plan with current progress, the current step you are working through, and the next couple of tasks you think are necessary to reach the next higher level step.
-
-## Trust the system
-Don't fight the failures and just --no-verify the commit or the push. The goal of these automated checks is to provide guardrails and ensure high quality, maintainable code. IF there aren't test, write good tests. If the file isn't linting, fiz the linting issues. IF non of the required infrastructure is set up, set up the infrastructure: the test runner, the linter, etc. etc.
-
-
-HEREDOC
-
-  # Replace variables
-  if [ "$(uname)" = "Darwin" ]; then
-    # macOS
-    sed -i '' "s/{{REPO_NAME}}/${REPO_NAME}/g" CLAUDE.md
-    sed -i '' "s/{{INSTALL_DATE}}/${INSTALL_DATE}/g" CLAUDE.md
-    sed -i '' "s/{{REPO_TYPE}}/${REPO_TYPE}/g" CLAUDE.md
-    sed -i '' "s/{{AUTHOR}}/${AUTHOR}/g" CLAUDE.md
+    cp "$SCRIPT_DIR/../CLAUDE.md" CLAUDE.md
+    log_success "Installed CLAUDE.md (Hybrid Model v2.0)"
+    log_info "This file enforces the Hybrid Operating Model on all Claude interactions"
   else
-    # Linux
-    sed -i "s/{{REPO_NAME}}/${REPO_NAME}/g" CLAUDE.md
-    sed -i "s/{{INSTALL_DATE}}/${INSTALL_DATE}/g" CLAUDE.md
-    sed -i "s/{{REPO_TYPE}}/${REPO_TYPE}/g" CLAUDE.md
-    sed -i "s/{{AUTHOR}}/${AUTHOR}/g" CLAUDE.md
+    log_warning "CLAUDE.md template not found in .github repo"
+    log_info "You can create it manually later"
   fi
-
-  log_success "Created CLAUDE.md documentation"
 }
 
 ###############################################################################
@@ -421,39 +501,126 @@ test_installation() {
 }
 
 ###############################################################################
+# Check and Create Initial Commit
+###############################################################################
+
+check_initial_commit() {
+  log_step "Checking for initial commit..."
+
+  # Check if repository has any commits
+  if git rev-parse HEAD > /dev/null 2>&1; then
+    log_success "Repository has commits - hooks will work correctly"
+    return 0
+  fi
+
+  # No commits yet
+  log_warning "No commits found in this repository"
+  echo ""
+  echo -e "${YELLOW}⚠ Important:${NC} Git hooks require at least one commit to work properly."
+  echo -e "   Without a commit, automation hooks will ${RED}not trigger${NC} on git operations."
+  echo ""
+  echo -e "Would you like to create an initial commit now?"
+  echo ""
+  echo -e "  ${BLUE}1)${NC} Yes, commit automation setup files"
+  echo -e "  ${BLUE}2)${NC} No, I'll commit manually later"
+  echo ""
+  printf "Choice [1-2]: "
+
+  # Read user input (with timeout of 30 seconds)
+  read -t 30 CHOICE || CHOICE="2"
+
+  case $CHOICE in
+    1)
+      echo ""
+      log_info "Creating initial commit..."
+
+      # Stage all automation files
+      git add .
+
+      # Create commit
+      git commit --no-verify -m "chore: Initialize InformUp automation system
+
+- Add Claude Code agents (12 agents)
+- Configure git hooks (pre-commit, pre-push, post-checkout, post-commit)
+- Set up automation scripts and configuration
+- Add design-docs directory structure
+
+Generated by InformUp Automation Installer v2.0.0" > /dev/null 2>&1
+
+      if [ $? -eq 0 ]; then
+        log_success "Initial commit created successfully"
+        echo -e "   ${GREEN}✓${NC} Git hooks will now work on all branches"
+      else
+        log_error "Failed to create initial commit"
+        echo -e "   ${YELLOW}Please create a commit manually before git hooks will work${NC}"
+      fi
+      ;;
+
+    2|*)
+      echo ""
+      log_warning "Skipping initial commit"
+      echo ""
+      echo -e "${YELLOW}Remember:${NC} Git hooks will ${RED}not work${NC} until you create an initial commit:"
+      echo -e "  ${BLUE}git add .${NC}"
+      echo -e "  ${BLUE}git commit -m \"Initial commit\"${NC}"
+      echo ""
+      ;;
+  esac
+}
+
+###############################################################################
 # Print Next Steps
 ###############################################################################
 
 print_next_steps() {
   echo ""
-  echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${GREEN}║                                                            ║${NC}"
-  echo -e "${GREEN}║   ✅  InformUp Automation Successfully Installed!         ║${NC}"
-  echo -e "${GREEN}║                                                            ║${NC}"
-  echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
-  echo ""
+  if [ "$NEEDS_UPGRADE" = "true" ]; then
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                                                            ║${NC}"
+    echo -e "${GREEN}║   ✅  Upgraded to Hybrid Operating Model v2.0!           ║${NC}"
+    echo -e "${GREEN}║                                                            ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${CYAN}What Changed:${NC}"
+    echo -e "  ✓ Configuration upgraded from v$EXISTING_VERSION → v2.0.0 (Hybrid Model)"
+    echo -e "  ✓ Added task classification system (9 task types)"
+    echo -e "  ✓ Added compliance scoring (0-100)"
+    echo -e "  ✓ Added transparent standards enforcement"
+    echo -e "  ✓ Installed CLAUDE.md to enforce hybrid model"
+    echo -e "  ✓ Your customizations preserved in backup"
+    echo ""
+  else
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                                                            ║${NC}"
+    echo -e "${GREEN}║   ✅  InformUp Hybrid Model Successfully Installed!       ║${NC}"
+    echo -e "${GREEN}║                                                            ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+  fi
   echo -e "${CYAN}Next Steps:${NC}"
   echo ""
   echo -e "  ${YELLOW}1.${NC} Install Claude Code CLI (if not already installed):"
   echo -e "     ${BLUE}npm install -g @anthropic/claude-code${NC}"
   echo -e "     ${BLUE}claude auth login${NC}"
   echo ""
-  echo -e "  ${YELLOW}2.${NC} (Optional) Start the file watcher for background automation:"
-  echo -e "     ${BLUE}npm run automation:start &${NC}"
+  echo -e "  ${YELLOW}2.${NC} Read about the Hybrid Model:"
+  echo -e "     ${BLUE}cat CLAUDE.md${NC} (enforcement instructions for Claude)"
+  echo -e "     ${BLUE}https://github.com/INFORMUP/.github/blob/main/docs/HybridOperatingModel.md${NC}"
   echo ""
   echo -e "  ${YELLOW}3.${NC} Create a new feature branch to try it out:"
-  echo -e "     ${BLUE}git checkout -b feature/test-automation${NC}"
+  echo -e "     ${BLUE}git checkout -b feature/test-hybrid-model${NC}"
+  echo -e "     ${CYAN}Note: Claude will classify your task and show applicable standards${NC}"
   echo ""
-  echo -e "  ${YELLOW}4.${NC} Read the documentation:"
-  echo -e "     ${BLUE}cat CLAUDE.md${NC} (quick reference in this repo)"
-  echo -e "     ${BLUE}https://github.com/INFORMUP/.github/blob/main/docs/GettingStarted.md${NC}"
+  echo -e "  ${YELLOW}4.${NC} (Optional) Start the file watcher for background automation:"
+  echo -e "     ${BLUE}npm run automation:start &${NC}"
   echo ""
   echo -e "${CYAN}Installed Components:${NC}"
   echo -e "  ✓ 12 Claude agents (.claude/agents/)"
+  echo -e "  ✓ Hybrid Model skill (.claude/skills/informup-engineering-excellence.md)"
   echo -e "  ✓ Agent-based git hooks (pre-commit, pre-push, post-checkout, post-commit)"
-  echo -e "  ✓ Configuration file (v2.0.0 - agent-based)"
+  echo -e "  ✓ Configuration file (v2.0.0 - Hybrid Model with medium enforcement)"
+  echo -e "  ✓ CLAUDE.md (enforces skill usage - now 73 lines instead of 527!)"
   echo -e "  ✓ Directory structure"
-  echo -e "  ✓ CLAUDE.md documentation guide"
   echo ""
   echo -e "${CYAN}Available Agents:${NC}"
   echo -e "  • workflow-guardrails  - Prevent workflow mistakes ⭐ NEW"
@@ -469,15 +636,24 @@ print_next_steps() {
   echo -e "  • error-investigator   - Production error investigation"
   echo -e "  • documentation        - Documentation maintenance"
   echo ""
+  echo -e "${CYAN}Hybrid Model Features:${NC}"
+  echo -e "  • Task Classification - 9 types (major/minor features, bugs, hotfixes, etc.)"
+  echo -e "  • Compliance Scoring - 0-100 score with breakdown"
+  echo -e "  • Transparent Standards - Claude shows WHAT applies and WHY"
+  echo -e "  • Configurable Enforcement - Currently: ${YELLOW}MEDIUM${NC} (blocks <80)"
+  echo ""
   echo -e "${CYAN}Configuration:${NC}"
-  echo -e "  Edit ${BLUE}.claude-automation-config.json${NC} to enable/disable agents"
+  echo -e "  Edit ${BLUE}.claude-automation-config.json${NC} to:"
+  echo -e "    - Change enforcement level (minimal/soft/medium/strict)"
+  echo -e "    - Adjust standards for task types"
+  echo -e "    - Enable/disable specific agents"
   echo ""
   echo -e "${CYAN}Manual Agent Usage:${NC}"
-  echo -e "  ${BLUE}claude code --agent feature-planner${NC}"
-  echo -e "  ${BLUE}claude code --agent security-auditor${NC}"
-  echo -e "  ${BLUE}claude code --agent build-diagnostician${NC}"
+  echo -e "  ${BLUE}claude code --agent workflow-guardrails${NC} - Check compliance"
+  echo -e "  ${BLUE}claude code --agent feature-planner${NC}     - Plan new feature"
+  echo -e "  ${BLUE}claude code --agent security-auditor${NC}    - Security review"
   echo ""
-  echo -e "${GREEN}Happy coding! 🚀${NC}"
+  echo -e "${GREEN}Happy coding with transparent standards! 🚀${NC}"
   echo ""
 }
 
@@ -489,22 +665,24 @@ main() {
   echo ""
   echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${CYAN}║                                                            ║${NC}"
-  echo -e "${CYAN}║   InformUp Engineering Automation Installer (Agent-Based)  ║${NC}"
+  echo -e "${CYAN}║   InformUp Engineering Automation Installer (Hybrid Model) ║${NC}"
   echo -e "${CYAN}║                  Version 2.0.0                             ║${NC}"
   echo -e "${CYAN}║                                                            ║${NC}"
   echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
   echo ""
 
   preflight_checks
+  detect_existing_installation  # NEW: Detect v1.0 installations
   detect_repo_type
   install_dependencies
   create_directories
   copy_templates
-  create_config
+  create_config               # Will upgrade if needed
   update_package_json
   update_gitignore
-  create_claude_documentation
+  create_claude_documentation  # NEW: Hybrid Model CLAUDE.md
   test_installation
+  check_initial_commit
   print_next_steps
 
   exit 0

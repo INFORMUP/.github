@@ -1,0 +1,428 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "version": "2.0.0",
+  "operatingModel": "hybrid",
+  "description": "Hybrid Operating Model - Transparent standards with intelligent guidance",
+
+  "taskClassification": {
+    "autoDetect": true,
+    "allowUserOverride": true,
+    "requireConfirmation": true,
+    "signals": {
+      "branchPattern": true,
+      "changeAnalysis": true,
+      "userInput": true,
+      "linkedIssues": true
+    }
+  },
+
+  "standards": {
+    "enforcement": "medium",
+    "minimumScore": 80,
+    "failOnSecurityIssues": true,
+    "allowOverride": true,
+    "overrideRequiresJustification": true,
+    "showStandardsOnEveryInteraction": true,
+    "explainDecisions": true
+  },
+
+  "taskTypes": {
+    "NEW_FEATURE_MAJOR": {
+      "description": "User-facing feature, >500 LOC, significant complexity",
+      "detection": {
+        "branchPatterns": ["feature/*", "feat/*"],
+        "minEstimatedLines": 500,
+        "indicators": ["user-facing", "new-component", "api-changes"]
+      },
+      "documentation": {
+        "required": ["PRD", "DESIGN", "TEST_PLAN"],
+        "location": "docs/",
+        "minimumScore": 90,
+        "templates": {
+          "PRD": "automation-templates/docs/PRD-template.md",
+          "DESIGN": "automation-templates/docs/DESIGN-template.md",
+          "TEST_PLAN": "automation-templates/docs/TEST-PLAN-template.md"
+        }
+      },
+      "testing": {
+        "minimumCoverage": 80,
+        "tddRequired": true,
+        "types": ["unit", "integration", "e2e"],
+        "criticalPathCoverage": 100
+      },
+      "codeQuality": {
+        "maxFunctionLines": 20,
+        "maxComplexity": 10,
+        "requiresErrorHandling": true,
+        "requiresInputValidation": true
+      },
+      "security": {
+        "reviewRequired": true,
+        "dataHandling": "strict",
+        "authRequired": true
+      },
+      "review": {
+        "aiRequired": true,
+        "humanRequired": true,
+        "reviewType": "comprehensive"
+      },
+      "enforcement": "strict",
+      "missionAlignment": {
+        "required": true,
+        "checkAgainst": "InformUp civic engagement mission"
+      }
+    },
+
+    "NEW_FEATURE_MINOR": {
+      "description": "Small feature, <500 LOC, limited scope",
+      "detection": {
+        "branchPatterns": ["feature/*", "feat/*"],
+        "maxEstimatedLines": 500,
+        "indicators": ["enhancement", "small-change"]
+      },
+      "documentation": {
+        "required": ["DESIGN"],
+        "location": "design-docs/",
+        "minimumScore": 85
+      },
+      "testing": {
+        "minimumCoverage": 80,
+        "tddRequired": false,
+        "tddRecommended": true,
+        "types": ["unit", "integration"]
+      },
+      "codeQuality": {
+        "maxFunctionLines": 20,
+        "maxComplexity": 10,
+        "requiresErrorHandling": true,
+        "requiresInputValidation": true
+      },
+      "review": {
+        "aiRequired": true,
+        "humanRequired": false,
+        "humanRecommended": true
+      },
+      "enforcement": "medium"
+    },
+
+    "ENHANCEMENT": {
+      "description": "Improvement to existing feature",
+      "detection": {
+        "branchPatterns": ["enhancement/*", "improve/*"],
+        "indicators": ["refine", "optimize", "improve"]
+      },
+      "documentation": {
+        "required": ["updated_design_doc"],
+        "minimumScore": 80,
+        "updateExisting": true
+      },
+      "testing": {
+        "minimumCoverage": "maintain",
+        "improvementEncouraged": true,
+        "types": ["unit"]
+      },
+      "codeQuality": {
+        "maxFunctionLines": 20,
+        "maxComplexity": 10
+      },
+      "enforcement": "medium"
+    },
+
+    "BUG_FIX": {
+      "description": "Non-critical bug repair",
+      "detection": {
+        "branchPatterns": ["fix/*", "bugfix/*", "bug/*"],
+        "indicators": ["fix", "bug", "defect"]
+      },
+      "documentation": {
+        "required": ["issue_description"],
+        "minimumScore": 70,
+        "requiresReproSteps": true,
+        "requiresRootCause": false
+      },
+      "testing": {
+        "minimumCoverage": "maintain",
+        "regressionTestRequired": true,
+        "coverageImprovement": 5,
+        "types": ["regression", "unit"]
+      },
+      "codeQuality": {
+        "maxFunctionLines": 30,
+        "maxComplexity": 12,
+        "relaxedStandards": true
+      },
+      "review": {
+        "aiRequired": true,
+        "humanRequired": false
+      },
+      "enforcement": "soft"
+    },
+
+    "HOTFIX": {
+      "description": "Critical production issue requiring immediate fix",
+      "detection": {
+        "branchPatterns": ["hotfix/*", "critical/*", "emergency/*"],
+        "indicators": ["critical", "production-down", "security-issue"]
+      },
+      "documentation": {
+        "required": ["incident_report"],
+        "canBePostHoc": true,
+        "deadline": "24 hours",
+        "minimumScore": 70
+      },
+      "testing": {
+        "regressionTestRequired": true,
+        "canBePostDeployment": false,
+        "minimumCoverage": "regression-only"
+      },
+      "security": {
+        "reviewRequired": true,
+        "timing": "immediate-if-security-related"
+      },
+      "review": {
+        "humanRequired": true,
+        "timing": "post-deployment-acceptable",
+        "urgency": "critical"
+      },
+      "enforcement": "expedited",
+      "allowExpediency": true
+    },
+
+    "REFACTOR": {
+      "description": "Code improvement without behavior change",
+      "detection": {
+        "branchPatterns": ["refactor/*"],
+        "indicators": ["refactor", "restructure", "cleanup"]
+      },
+      "documentation": {
+        "required": ["refactor_plan"],
+        "minimumScore": 75,
+        "explainsWhy": true
+      },
+      "testing": {
+        "minimumCoverage": "maintain-or-improve",
+        "noBehaviorChange": true,
+        "types": ["unit", "integration"]
+      },
+      "codeQuality": {
+        "shouldImprove": true,
+        "maxFunctionLines": 20,
+        "maxComplexity": 10
+      },
+      "enforcement": "medium"
+    },
+
+    "DOCS": {
+      "description": "Documentation-only changes",
+      "detection": {
+        "branchPatterns": ["docs/*", "doc/*", "documentation/*"],
+        "indicators": ["documentation", "readme", "comments"]
+      },
+      "documentation": {
+        "required": [],
+        "selfDocumenting": true
+      },
+      "testing": {
+        "required": false,
+        "lintMarkdown": true
+      },
+      "enforcement": "soft"
+    },
+
+    "CHORE": {
+      "description": "Dependencies, configuration, tooling",
+      "detection": {
+        "branchPatterns": ["chore/*", "deps/*", "config/*"],
+        "indicators": ["dependency", "configuration", "tooling"]
+      },
+      "documentation": {
+        "required": ["change_notes"],
+        "minimumScore": 70
+      },
+      "testing": {
+        "ifApplicable": true,
+        "buildMustPass": true
+      },
+      "enforcement": "soft"
+    },
+
+    "EXPERIMENT": {
+      "description": "Proof of concept, R&D, learning",
+      "detection": {
+        "branchPatterns": ["experiment/*", "poc/*", "spike/*"],
+        "indicators": ["experiment", "proof-of-concept", "spike"]
+      },
+      "documentation": {
+        "required": ["experiment_notes"],
+        "minimumScore": 60,
+        "capturelearnings": true
+      },
+      "testing": {
+        "optional": true
+      },
+      "enforcement": "minimal",
+      "allowExperimentation": true
+    }
+  },
+
+  "compliance": {
+    "scoring": {
+      "documentation": {
+        "weight": 30,
+        "criteria": {
+          "completeness": 40,
+          "clarity": 30,
+          "technicalDetail": 30
+        }
+      },
+      "codeQuality": {
+        "weight": 25,
+        "criteria": {
+          "functionSize": 25,
+          "complexity": 25,
+          "naming": 20,
+          "errorHandling": 30
+        }
+      },
+      "testCoverage": {
+        "weight": 25,
+        "criteria": {
+          "percentage": 50,
+          "criticalPaths": 30,
+          "edgeCases": 20
+        }
+      },
+      "security": {
+        "weight": 10,
+        "criteria": {
+          "noSecrets": 40,
+          "inputValidation": 30,
+          "authChecks": 30
+        }
+      },
+      "performance": {
+        "weight": 10,
+        "criteria": {
+          "noMemoryLeaks": 40,
+          "efficientAlgorithms": 30,
+          "loadTesting": 30
+        }
+      }
+    },
+    "thresholds": {
+      "excellent": 90,
+      "good": 80,
+      "adequate": 70,
+      "needsWork": 0
+    },
+    "displayFormat": {
+      "showScore": true,
+      "showBreakdown": true,
+      "showImprovementPath": true,
+      "showComparison": false
+    }
+  },
+
+  "agents": {
+    "allAgentsShowStandards": true,
+    "allAgentsShowCompliance": true,
+    "allAgentsExplainDecisions": true,
+    "allAgentsClassifyTasks": true,
+    "enhancedAgents": {
+      "workflow-guardrails": {
+        "includesStandards": true,
+        "includesTaskClassification": true
+      },
+      "feature-planner": {
+        "includesTaskClassification": true,
+        "includesComplianceScoring": true,
+        "blockingThreshold": 90
+      },
+      "code-reviewer": {
+        "taskAwareStandards": true,
+        "complianceScoring": true
+      }
+    }
+  },
+
+  "enforcementModes": {
+    "minimal": {
+      "description": "Education only, no blocking",
+      "showStandards": true,
+      "showScoring": true,
+      "blockOnAny": false,
+      "useFor": ["EXPERIMENT", "learning"]
+    },
+    "soft": {
+      "description": "Warnings for quality, blocking for security",
+      "showStandards": true,
+      "showScoring": true,
+      "blockOn": ["security"],
+      "warnOn": ["quality", "coverage"],
+      "useFor": ["BUG_FIX", "DOCS", "CHORE"]
+    },
+    "medium": {
+      "description": "Blocking for <80 score, overrides allowed",
+      "showStandards": true,
+      "showScoring": true,
+      "blockOn": ["score<80", "security"],
+      "allowOverride": true,
+      "useFor": ["NEW_FEATURE_MINOR", "ENHANCEMENT", "REFACTOR"]
+    },
+    "strict": {
+      "description": "Blocking for <90 score, overrides need approval",
+      "showStandards": true,
+      "showScoring": true,
+      "blockOn": ["score<90", "security", "performance"],
+      "allowOverride": true,
+      "overrideRequiresApproval": true,
+      "useFor": ["NEW_FEATURE_MAJOR"]
+    },
+    "expedited": {
+      "description": "Fix first, comply after (for emergencies)",
+      "showStandards": true,
+      "allowPostHocCompliance": true,
+      "complianceDeadline": "24h",
+      "useFor": ["HOTFIX"]
+    }
+  },
+
+  "transparency": {
+    "alwaysShowTaskType": true,
+    "alwaysShowApplicableStandards": true,
+    "alwaysExplainWhy": true,
+    "allowQuestionClassification": true,
+    "showComplianceScore": true,
+    "showImprovementSuggestions": true
+  },
+
+  "organizationContext": {
+    "name": "InformUp",
+    "type": "nonprofit",
+    "mission": "Dramatically increase local civic participation",
+    "constraints": [
+      "Limited budget",
+      "Volunteer contributors",
+      "Must be maintainable long-term"
+    ],
+    "priorities": [
+      "Mission alignment",
+      "Accessibility",
+      "Maintainability",
+      "Volunteer-friendly code"
+    ]
+  },
+
+  "overrides": {
+    "perRepository": {
+      "enabled": true,
+      "location": ".claude/overrides.json"
+    },
+    "temporary": {
+      "enabled": true,
+      "requiresJustification": true,
+      "expiresAfter": "1 week",
+      "requiresReview": true
+    }
+  }
+}
