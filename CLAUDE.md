@@ -6,7 +6,7 @@
 
 ## Skill to Use
 
-**Skill**: `informup-engineering-excellence` (located in `.claude/skills/`)
+**Skill**: `informup-engineering-excellence` (located in `.claude/skills/informup-engineering-excellence/SKILL.md`)
 
 **When**: For EVERY engineering task (features, bugs, refactors, docs, etc.)
 
@@ -70,4 +70,4 @@ ARTIFACTS:
 For detailed documentation, see:
 - `docs/HybridOperatingModel.md` - Full specification
 - `docs/HybridModelQuickReference.md` - Quick reference guide
-- `.claude/skills/informup-engineering-excellence.md` - Skill definition
+- `.claude/skills/informup-engineering-excellence/SKILL.md` - Skill definition

@@ -221,9 +221,10 @@ copy_templates() {
     cp "$TEMPLATES_DIR/claude-agents/"*.md .claude/agents/
     log_success "Copied Claude agent definitions"
 
-    # Copy Hybrid Model skill
-    if [ -f "$SCRIPT_DIR/../.claude/skills/informup-engineering-excellence.md" ]; then
-      cp "$SCRIPT_DIR/../.claude/skills/informup-engineering-excellence.md" .claude/skills/
+    # Copy Hybrid Model skill (correct directory structure)
+    if [ -d "$SCRIPT_DIR/../.claude/skills/informup-engineering-excellence" ]; then
+      mkdir -p .claude/skills/informup-engineering-excellence
+      cp "$SCRIPT_DIR/../.claude/skills/informup-engineering-excellence/SKILL.md" .claude/skills/informup-engineering-excellence/
       log_success "Copied Hybrid Model skill"
     else
       log_warning "Hybrid Model skill not found, skipping"
@@ -466,11 +467,19 @@ test_installation() {
 
   # Test Claude agents (primary check)
   AGENT_COUNT=$(ls -1 .claude/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$AGENT_COUNT" -ge 12 ]; then
+  if [ "$AGENT_COUNT" -ge 13 ]; then
     log_success "Claude agents installed ($AGENT_COUNT agents)"
   else
-    log_error "Claude agents not found or incomplete (found: $AGENT_COUNT, expected: 12)"
+    log_error "Claude agents not found or incomplete (found: $AGENT_COUNT, expected: 13)"
     return 1
+  fi
+
+  # Test Hybrid Model skill (correct directory structure)
+  if [ -f ".claude/skills/informup-engineering-excellence/SKILL.md" ]; then
+    log_success "Hybrid Model skill installed (correct structure)"
+  else
+    log_warning "Hybrid Model skill not found or incorrect structure"
+    log_info "Should be: .claude/skills/informup-engineering-excellence/SKILL.md"
   fi
 
   # Test Husky
@@ -483,12 +492,13 @@ test_installation() {
 
   # Test config
   if [ -f ".claude-automation-config.json" ]; then
-    # Verify it's v2.0.0 config with agent support
+    # Verify it's v2.0.0 config with hybrid model
     VERSION=$(node -p "try { require('./.claude-automation-config.json').version } catch(e) { '1.0.0' }")
-    if [ "$VERSION" = "2.0.0" ]; then
-      log_success "Configuration file created (v$VERSION - agent-based)"
+    HAS_HYBRID=$(node -p "try { require('./.claude-automation-config.json').operatingModel === 'hybrid' } catch(e) { false }")
+    if [ "$VERSION" = "2.0.0" ] && [ "$HAS_HYBRID" = "true" ]; then
+      log_success "Configuration file created (v$VERSION - Hybrid Model)"
     else
-      log_warning "Configuration is v$VERSION (expected 2.0.0)"
+      log_warning "Configuration is v$VERSION (expected 2.0.0 with hybrid model)"
     fi
   else
     log_error "Configuration not found"
@@ -615,22 +625,23 @@ print_next_steps() {
   echo -e "     ${BLUE}npm run automation:start &${NC}"
   echo ""
   echo -e "${CYAN}Installed Components:${NC}"
-  echo -e "  ✓ 12 Claude agents (.claude/agents/)"
-  echo -e "  ✓ Hybrid Model skill (.claude/skills/informup-engineering-excellence.md)"
+  echo -e "  ✓ 13 Claude agents (.claude/agents/) - includes edge-case-analyzer"
+  echo -e "  ✓ Hybrid Model skill (.claude/skills/informup-engineering-excellence/SKILL.md)"
   echo -e "  ✓ Agent-based git hooks (pre-commit, pre-push, post-checkout, post-commit)"
   echo -e "  ✓ Configuration file (v2.0.0 - Hybrid Model with medium enforcement)"
-  echo -e "  ✓ CLAUDE.md (enforces skill usage - now 73 lines instead of 527!)"
+  echo -e "  ✓ CLAUDE.md (enforces skill usage - 73 lines)"
   echo -e "  ✓ Directory structure"
   echo ""
   echo -e "${CYAN}Available Agents:${NC}"
-  echo -e "  • workflow-guardrails  - Prevent workflow mistakes ⭐ NEW"
+  echo -e "  • workflow-guardrails  - Prevent workflow mistakes"
   echo -e "  • feature-planner      - Interactive feature planning"
+  echo -e "  • edge-case-analyzer   - Edge case & risk analysis ⭐ NEW"
   echo -e "  • code-reviewer        - Quick code review"
   echo -e "  • pr-generator         - PR description generation"
   echo -e "  • architecture-reviewer - Design architecture review"
   echo -e "  • security-auditor     - Security & privacy review"
   echo -e "  • cost-analyzer        - Resource cost estimation"
-  echo -e "  • test-generator       - Automated test generation"
+  echo -e "  • test-generator       - Automated test generation (uses edge case analysis)"
   echo -e "  • local-ci             - Full local CI pipeline"
   echo -e "  • build-diagnostician  - Build failure diagnosis"
   echo -e "  • error-investigator   - Production error investigation"
