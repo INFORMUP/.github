@@ -25,14 +25,25 @@
     "NEW_FEATURE_MAJOR": {
       "description": "User-facing feature, >500 LOC",
       "documentation": {
-        "required": ["PRD", "DESIGN", "TEST_PLAN"],
+        "required": ["PRD", "DESIGN", "TEST_PLAN", "EDGE_CASE_ANALYSIS"],
         "location": "docs/",
         "minimumScore": 90
+      },
+      "edgeCaseAnalysis": {
+        "required": true,
+        "agent": "edge-case-analyzer",
+        "minimumRisksIdentified": 10,
+        "requireP0Coverage": true,
+        "outputLocation": "docs/EDGE-CASE-ANALYSIS-{feature}.md",
+        "runAfter": ["architecture-reviewer", "security-auditor"],
+        "runBefore": ["test-generator"]
       },
       "testing": {
         "minimumCoverage": 80,
         "tddRequired": true,
-        "types": ["unit", "integration", "e2e"]
+        "types": ["unit", "integration", "e2e"],
+        "useEdgeCaseAnalysis": true,
+        "allP0RisksMustHaveTests": true
       },
       "codeQuality": {
         "maxFunctionLines": 20,
@@ -179,6 +190,7 @@
     "available": [
       "workflow-guardrails",
       "feature-planner",
+      "edge-case-analyzer",
       "code-reviewer",
       "pr-generator",
       "architecture-reviewer",
