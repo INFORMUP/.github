@@ -199,11 +199,17 @@ create_directories() {
   mkdir -p design-docs
   log_success "Created design-docs/"
 
+  mkdir -p docs/reviews
+  log_success "Created docs/reviews/"
+
   mkdir -p .claude/agents
   log_success "Created .claude/agents/"
 
   mkdir -p .claude/skills
   log_success "Created .claude/skills/"
+
+  mkdir -p .claude
+  log_success "Created .claude/"
 
   mkdir -p .claude-prompts
   log_success "Created .claude-prompts/ (for custom overrides)"
@@ -450,11 +456,75 @@ create_claude_documentation() {
     fi
 
     cp "$SCRIPT_DIR/../CLAUDE.md" CLAUDE.md
-    log_success "Installed CLAUDE.md (Hybrid Model v2.0)"
-    log_info "This file enforces the Hybrid Operating Model on all Claude interactions"
+    log_success "Installed CLAUDE.md (Hybrid Model v2.0 with anti-reversion protection)"
   else
     log_warning "CLAUDE.md template not found in .github repo"
-    log_info "You can create it manually later"
+  fi
+
+  # Create decision log
+  if [ ! -f ".claude/decisions.md" ]; then
+    REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+    INSTALL_DATE=$(date +%Y-%m-%d)
+
+    cat > .claude/decisions.md << 'EOF'
+# Engineering Decisions Log
+
+**Purpose**: Track major engineering decisions for context across sessions and prevent unintentional reversions.
+
+**Repository**: {{REPO_NAME}}
+**Created**: {{INSTALL_DATE}}
+
+---
+
+## {{INSTALL_DATE}} - Hybrid Operating Model Installation
+
+**Context**: Installed InformUp Hybrid Operating Model v2.0 for transparent standards enforcement.
+
+**Decision**: Use hybrid model with medium enforcement for all engineering tasks.
+
+**Key Features**:
+- Task classification (9 types)
+- Compliance scoring (0-100)
+- Transparent standards
+- Edge case & risk analysis
+- Anti-reversion protection
+
+**Impact**: All engineering workflows in this repository
+
+**Author**: InformUp Automation Installer
+
+---
+
+## Template for Future Decisions
+
+```markdown
+## [YYYY-MM-DD] - [Decision Title]
+
+**Context**: [Why was this needed?]
+**Decision**: [What was decided?]
+**Rationale**: [Why this approach?]
+**Impact**: [Who/what is affected?]
+**Alternatives Considered**: [What else was considered?]
+**Author**: [Who decided]
+```
+
+---
+
+**Note to Claude**: Check this file before suggesting to revert or remove features.
+EOF
+
+    # Replace variables
+    if [ "$(uname)" = "Darwin" ]; then
+      sed -i '' "s/{{REPO_NAME}}/${REPO_NAME}/g" .claude/decisions.md
+      sed -i '' "s/{{INSTALL_DATE}}/${INSTALL_DATE}/g" .claude/decisions.md
+    else
+      sed -i "s/{{REPO_NAME}}/${REPO_NAME}/g" .claude/decisions.md
+      sed -i "s/{{INSTALL_DATE}}/${INSTALL_DATE}/g" .claude/decisions.md
+    fi
+
+    log_success "Created .claude/decisions.md (decision tracking)"
+  else
+    log_info ".claude/decisions.md already exists"
   fi
 }
 

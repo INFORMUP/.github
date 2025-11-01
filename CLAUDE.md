@@ -58,12 +58,79 @@ ARTIFACTS:
 
 ---
 
-## Important
+## Important Rules
 
 1. **Always invoke the skill** for engineering work
 2. **Include compliance report** in all commits and PRs
 3. **Link to artifacts** for human review
 4. **Use concise format** (no verbose output)
+
+---
+
+## Anti-Reversion Protection
+
+### CRITICAL: Never Revert Without Explicit Confirmation
+
+**BEFORE removing, reverting, or significantly changing:**
+- Previous features or functionality
+- Configuration decisions
+- Architecture choices
+- Standards or requirements
+- User customizations
+- Design decisions from previous sessions
+
+**YOU MUST ASK FIRST**:
+```
+⚠️  REVERSION DETECTED
+
+Proposed change would remove/modify: [X]
+
+Previous decision: [What was decided before]
+Impact: [What will be affected]
+
+Do you want to proceed?
+  [1] Yes, revert this
+  [2] No, keep it
+  [3] Modify instead
+```
+
+### Decision Log
+
+Track major decisions in `.claude/decisions.md` for context across sessions:
+
+**Log format**:
+```markdown
+## [YYYY-MM-DD] - [Decision]
+**Context**: [Why]
+**Decision**: [What]
+**Impact**: [Who/what affected]
+```
+
+**Check this log** before suggesting reversions.
+
+### Examples
+
+**BAD**:
+```
+User: "Reports are verbose"
+Claude: [Removes reporting without asking]
+```
+
+**GOOD**:
+```
+User: "Reports are verbose"
+Claude: "I can reduce verbosity. Current reports include:
+  - Task classification
+  - Compliance scores
+  - Standards display
+
+Options:
+  1. Make concise (keep all info, reduce formatting)
+  2. Remove some sections (which?)
+  3. Make configurable
+
+What would you prefer?"
+```
 
 ---
 
