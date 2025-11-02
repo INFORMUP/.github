@@ -140,6 +140,50 @@
 
 ---
 
+## 2025-01-31 - Design Review Enforcement with Phase Gates
+
+**Context**: System had design review agents (architecture, security, cost) but nothing enforced that they actually ran and produced review artifacts before proceeding to testing/implementation. Gap between "having agents" and "requiring their output."
+
+**Decision**: Add design-review-coordinator agent with phase gate enforcement.
+
+**Key Features**:
+- Orchestrates all design reviews (architecture, security, cost)
+- Creates review artifacts in docs/reviews/
+- Blocks progression without ALL required review artifacts
+- Phase gates prevent skipping ahead
+- Status checking for gate compliance
+
+**Required Artifacts** (NEW_FEATURE_MAJOR):
+- docs/reviews/architecture-{feature}.md
+- docs/reviews/security-{feature}.md
+- docs/reviews/cost-{feature}.md
+
+**Workflow Enforcement**:
+```
+Design Doc → Design Review (GATE) → Edge Case Analysis (GATE) → Tests → Code
+```
+
+**Rationale**:
+- Having review agents is useless if they're not required to run
+- Review artifacts provide audit trail for human reviewers
+- Phase gates prevent "ready, fire, aim"
+- Parallel execution keeps process fast
+- Clear gate status shows what's blocking progression
+
+**Impact**: NEW_FEATURE_MAJOR and NEW_FEATURE_MINOR workflows, all feature development
+
+**Alternatives Considered**:
+- Manual checklist (rejected - not enforced)
+- Single combined review (rejected - loses specialized expertise)
+- Reviews optional (rejected - defeats quality purpose)
+- Human-only reviews (rejected - AI can catch 80% of issues faster)
+
+**Author**: Chris Maury
+
+**Reversible?**: No - this is a core quality gate
+
+---
+
 ## Template for Future Decisions
 
 ```markdown
