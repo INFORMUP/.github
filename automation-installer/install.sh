@@ -213,6 +213,14 @@ create_directories() {
 
   mkdir -p .claude-prompts
   log_success "Created .claude-prompts/ (for custom overrides)"
+
+  # Create workspace for temporary files
+  mkdir -p .claude_workspace/drafts
+  mkdir -p .claude_workspace/analysis
+  mkdir -p .claude_workspace/checklists
+  mkdir -p .claude_workspace/scripts
+  mkdir -p .claude_workspace/notes
+  log_success "Created .claude_workspace/ (for temporary/intermediate files)"
 }
 
 ###############################################################################
@@ -418,16 +426,27 @@ update_gitignore() {
     ".claude-automation.log"
     ".claude-cache/"
     ".pr-description.md"
+    ""
+    "# Claude Workspace (temporary/intermediate files)"
+    ".claude_workspace/"
   )
 
   if [ -f ".gitignore" ]; then
     # Check if already added
     if grep -q "Claude Automation" .gitignore; then
-      log_success ".gitignore already configured"
+      # Check if workspace entry exists
+      if ! grep -q ".claude_workspace/" .gitignore; then
+        echo "" >> .gitignore
+        echo "# Claude Workspace (temporary/intermediate files)" >> .gitignore
+        echo ".claude_workspace/" >> .gitignore
+        log_success "Added .claude_workspace/ to .gitignore"
+      else
+        log_success ".gitignore already configured"
+      fi
       return
     fi
 
-    # Append entries
+    # Append all entries
     for entry in "${GITIGNORE_ENTRIES[@]}"; do
       echo "$entry" >> .gitignore
     done
@@ -436,7 +455,7 @@ update_gitignore() {
     printf "%s\n" "${GITIGNORE_ENTRIES[@]}" > .gitignore
   fi
 
-  log_success "Updated .gitignore"
+  log_success "Updated .gitignore (includes .claude_workspace/)"
 }
 
 ###############################################################################
@@ -699,7 +718,9 @@ print_next_steps() {
   echo -e "  ✓ Hybrid Model skill (.claude/skills/informup-engineering-excellence/SKILL.md)"
   echo -e "  ✓ Agent-based git hooks (pre-commit, pre-push, post-checkout, post-commit)"
   echo -e "  ✓ Configuration file (v2.0.0 - Hybrid Model with medium enforcement)"
-  echo -e "  ✓ CLAUDE.md (enforces skill usage - 73 lines)"
+  echo -e "  ✓ CLAUDE.md (enforces skill usage + workspace management)"
+  echo -e "  ✓ Decision log (.claude/decisions.md)"
+  echo -e "  ✓ Workspace directory (.claude_workspace/ - gitignored)"
   echo -e "  ✓ Directory structure"
   echo ""
   echo -e "${CYAN}Available Agents:${NC}"

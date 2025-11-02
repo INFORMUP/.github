@@ -64,6 +64,88 @@ ARTIFACTS:
 2. **Include compliance report** in all commits and PRs
 3. **Link to artifacts** for human review
 4. **Use concise format** (no verbose output)
+5. **Keep repository clean** - use workspace for temporary files
+
+---
+
+## Workspace Management
+
+### CRITICAL: Keep Repository Clean
+
+**Use the workspace directory for ALL temporary/intermediate files**:
+
+**Workspace Location**: `.claude_workspace/`
+
+**What Goes in Workspace**:
+- ✅ Intermediate drafts and working documents
+- ✅ Checklists and task lists
+- ✅ Temporary scripts and tools
+- ✅ Analysis outputs and reports (before final)
+- ✅ Generated files for review
+- ✅ Scratch files and notes
+- ✅ AI-generated content pending review
+- ✅ Test data and fixtures (temporary)
+- ✅ Build artifacts (temporary)
+
+**What Goes in Repository** (NOT workspace):
+- ✅ Final documentation (docs/, design-docs/)
+- ✅ Source code (src/, lib/, etc.)
+- ✅ Tests (tests/, __tests__/, *.test.*)
+- ✅ Configuration files (package.json, tsconfig.json, etc.)
+- ✅ Git hooks (.husky/)
+- ✅ Claude agents (.claude/agents/)
+- ✅ Claude skills (.claude/skills/)
+- ✅ Decision log (.claude/decisions.md)
+- ✅ README and core docs
+
+### Workspace Structure
+
+```
+.claude_workspace/
+├── drafts/              # Document drafts before final version
+├── analysis/            # Edge case analysis, reviews in progress
+├── checklists/          # Task checklists, todo lists
+├── scripts/             # Temporary scripts
+└── notes/               # Session notes, scratch work
+```
+
+### Example Usage
+
+**Creating a draft design doc**:
+```
+❌ BAD: Write to docs/DESIGN-feature.md immediately
+✅ GOOD: Write to .claude_workspace/drafts/DESIGN-feature.md first
+         → Review with user
+         → Move to docs/DESIGN-feature.md when approved
+```
+
+**Running edge case analysis**:
+```
+❌ BAD: Create docs/EDGE-CASE-ANALYSIS-feature.md immediately
+✅ GOOD: Create .claude_workspace/analysis/edge-cases-feature.md first
+         → Review with user
+         → Move to docs/EDGE-CASE-ANALYSIS-feature.md when approved
+```
+
+**Creating temporary checklists**:
+```
+❌ BAD: Create TODO.md in repo root
+✅ GOOD: Create .claude_workspace/checklists/feature-tasks.md
+         → Never commit to repo
+```
+
+### Cleanup
+
+**During work**:
+- Keep workspace organized in subdirectories
+- Delete obsolete files when done
+
+**When feature complete**:
+- Move finalized docs from workspace → repo
+- Delete temporary files
+- Keep only reference materials if needed
+
+**Workspace is gitignored**: Files here won't be committed accidentally
 
 ---
 
