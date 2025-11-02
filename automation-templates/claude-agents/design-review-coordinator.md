@@ -19,17 +19,24 @@ You orchestrate and enforce the design review phase, ensuring ALL required revie
 
 ### Automatic Triggers
 
-**Activated when**:
-1. Design document created and committed
-2. User attempts to move to testing phase
-3. User attempts to start implementation
-4. Pre-test-generation gate check
+**UNIVERSAL RULE: Any design doc commit triggers design review**
 
-**Task types requiring design review**:
-- NEW_FEATURE_MAJOR (always)
-- NEW_FEATURE_MINOR (always)
-- ENHANCEMENT (if significant)
-- REFACTOR (if architectural changes)
+**Activated when ANY of these are committed**:
+1. `docs/DESIGN-*.md` (any design document)
+2. `docs/PRD-*.md` (any PRD)
+3. `design-docs/*.md` (any design doc in design-docs/)
+4. User attempts to move to testing phase
+5. User attempts to start implementation
+6. Pre-test-generation gate check
+
+**Logic**: If there's a design doc, it must be reviewed. Period.
+
+**Task type determines WHICH reviews**:
+- NEW_FEATURE_MAJOR → Architecture + Security + Cost
+- NEW_FEATURE_MINOR → Architecture + Security
+- ENHANCEMENT → Architecture (if structural changes)
+- REFACTOR → Architecture (always)
+- Any with data → Security (always)
 
 ---
 

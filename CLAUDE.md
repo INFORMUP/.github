@@ -66,65 +66,115 @@ ARTIFACTS:
 
 ## Workflow Phase Enforcement
 
-### CRITICAL: Follow Required Phase Order
+### CRITICAL: Design Reviews Required for ANY Design Doc
 
-The hybrid model enforces phase order for quality. **You MUST check for required artifacts before proceeding**.
+**Universal Rule**: If a design document is created or committed, design reviews MUST be run.
 
-### Required Phases for NEW_FEATURE_MAJOR
+**Trigger**: ANY of these files committed:
+- `docs/DESIGN-*.md`
+- `docs/PRD-*.md`
+- `design-docs/*.md`
+
+**Action**: Automatically run design-review-coordinator to create review artifacts.
+
+### Required Workflow
 
 ```
-1. Feature Planning
-   → PRD, Design, Test Plan created
-   ✅ Proceed when: All docs score 90+
+DESIGN DOC COMMITTED
+        ↓
+DESIGN REVIEW COORDINATOR (AUTOMATIC)
+  ├─> Architecture Review → docs/reviews/architecture-{feature}.md
+  ├─> Security Review → docs/reviews/security-{feature}.md
+  └─> Cost Analysis → docs/reviews/cost-{feature}.md (if major)
+        ↓
+GATE CHECK: All review artifacts exist?
+  ✅ Yes → May proceed to next phase
+  ❌ No → BLOCKED until reviews complete
+```
 
-2. Design Review (BLOCKING GATE)
-   → Architecture review artifact
-   → Security review artifact
-   → Cost analysis artifact
-   🚫 CANNOT proceed without ALL review artifacts
+### Phase Order by Task Type
 
-3. Edge Case Analysis (BLOCKING GATE)
-   → Edge case analysis document
-   🚫 CANNOT proceed without edge case analysis
+**NEW_FEATURE_MAJOR**:
+```
+Planning → Design Review (GATE) → Edge Case (GATE) → Tests → Code
+```
 
-4. Test Generation
-   → Uses edge case analysis
-   → All P0 risks must have tests
+**NEW_FEATURE_MINOR**:
+```
+Planning → Design Review (GATE) → Tests → Code
+```
 
-5. Implementation
-   → Code with tests
+**ENHANCEMENT** (if has design doc):
+```
+Planning → Design Review (GATE) → Tests → Code
+```
+
+**REFACTOR** (if has refactor plan):
+```
+Planning → Architecture Review (GATE) → Tests → Code
 ```
 
 ### How to Enforce
 
-**Before running test-generator or allowing implementation**:
+**STEP 1: Detect Design Doc Commit**
+
+When user commits any design document:
+
+```bash
+# These patterns trigger design review:
+git add docs/DESIGN-*.md
+git add docs/PRD-*.md
+git add design-docs/*.md
+
+# Claude MUST run design-review-coordinator
+```
+
+**STEP 2: Check for Review Artifacts**
+
+Before allowing progression to testing or implementation:
 
 ```
 CHECK REQUIRED ARTIFACTS:
+
+For ANY design doc:
   [ ] docs/reviews/architecture-{feature}.md exists?
   [ ] docs/reviews/security-{feature}.md exists?
-  [ ] docs/reviews/cost-{feature}.md exists? (if major feature)
-  [ ] docs/EDGE-CASE-ANALYSIS-{feature}.md exists? (if major feature)
+
+For major features (additionally):
+  [ ] docs/reviews/cost-{feature}.md exists?
+  [ ] docs/EDGE-CASE-ANALYSIS-{feature}.md exists?
 
 IF ANY MISSING:
-  🚫 BLOCK and show:
+  🚫 BLOCK with:
 
-  "🚫 PHASE GATE BLOCKED
+  "🚫 DESIGN REVIEW REQUIRED
 
-  Missing required artifacts:
-    ❌ Architecture review: docs/reviews/architecture-{feature}.md
+  Design doc detected: {path}
+  Missing review artifacts:
+    ❌ docs/reviews/architecture-{feature}.md
+    ❌ docs/reviews/security-{feature}.md
 
-  You must complete design review before proceeding to testing.
+  ANY design doc requires design reviews.
 
   Run: claude code --agent design-review-coordinator
 
-  This will:
-    • Run architecture review
-    • Run security review
-    • Run cost analysis
-    • Create all required review artifacts
+  This creates required review artifacts in ~5 minutes."
+```
 
-  Cannot proceed until all reviews complete."
+**STEP 3: Verify Before Each Phase**
+
+```python
+# Before test generation
+if has_design_doc() and not all_reviews_complete():
+    block("Design reviews required")
+
+# Before implementation
+if has_design_doc() and not all_reviews_complete():
+    block("Design reviews required")
+
+# Before PR
+if has_design_doc() and not all_reviews_complete():
+    block("Design reviews required")
 ```
 
 ### Design Review Coordinator
