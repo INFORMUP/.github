@@ -144,19 +144,19 @@
 
 **Context**: System had design review agents (architecture, security, cost) but nothing enforced that they actually ran and produced review artifacts before proceeding to testing/implementation. Gap between "having agents" and "requiring their output."
 
-**Decision**: Add design-review-coordinator agent with phase gate enforcement.
+**Decision**: Add design-review-coordinator agent with phase gate enforcement. Universal rule: ANY design doc triggers reviews (not just major features).
 
 **Key Features**:
 - Orchestrates all design reviews (architecture, security, cost)
 - Creates review artifacts in docs/reviews/
 - Blocks progression without ALL required review artifacts
 - Phase gates prevent skipping ahead
-- Status checking for gate compliance
+- Universal trigger: ANY design doc commit → reviews run
 
-**Required Artifacts** (NEW_FEATURE_MAJOR):
-- docs/reviews/architecture-{feature}.md
-- docs/reviews/security-{feature}.md
-- docs/reviews/cost-{feature}.md
+**Required Artifacts**:
+- docs/reviews/architecture-{feature}.md (always)
+- docs/reviews/security-{feature}.md (always)
+- docs/reviews/cost-{feature}.md (if major feature)
 
 **Workflow Enforcement**:
 ```
@@ -167,20 +167,65 @@ Design Doc → Design Review (GATE) → Edge Case Analysis (GATE) → Tests → 
 - Having review agents is useless if they're not required to run
 - Review artifacts provide audit trail for human reviewers
 - Phase gates prevent "ready, fire, aim"
+- Universal trigger prevents skipping by misclassifying
 - Parallel execution keeps process fast
-- Clear gate status shows what's blocking progression
 
-**Impact**: NEW_FEATURE_MAJOR and NEW_FEATURE_MINOR workflows, all feature development
+**Impact**: All workflows with design docs, all feature development
 
 **Alternatives Considered**:
+- Only major features (rejected - misses issues in "small" features)
 - Manual checklist (rejected - not enforced)
-- Single combined review (rejected - loses specialized expertise)
 - Reviews optional (rejected - defeats quality purpose)
-- Human-only reviews (rejected - AI can catch 80% of issues faster)
 
 **Author**: Chris Maury
 
 **Reversible?**: No - this is a core quality gate
+
+---
+
+## 2025-01-31 - Phase Completion Commits
+
+**Context**: Need clear workflow progression in git history and rollback points at each phase. Prevents loss of work and creates audit trail.
+
+**Decision**: Require commits after each workflow phase completion.
+
+**Required Phase Commits**:
+1. Feature Planning → "docs: Add feature planning for {feature}"
+2. Design Review → "docs: Add design reviews for {feature}"
+3. Edge Case Analysis → "docs: Add edge case analysis for {feature}"
+4. Test Generation → "test: Add tests for {feature}"
+5. Implementation → "feat: Implement {feature}"
+6. Documentation → "docs: Update documentation for {feature}"
+
+**Commit Format**:
+- Include phase name in message
+- Include phase compliance report
+- List all phase artifacts
+- Show gate status for next phase
+
+**Enforcement**:
+- Claude prompts to commit after each phase
+- Offers to generate commit message
+- Warns if moving to next phase without committing previous
+
+**Rationale**:
+- Clear git history (one phase per commit)
+- Rollback points if phase needs rework
+- Saves work incrementally
+- Easier code review (reviewers can see phase-by-phase)
+- Audit trail for compliance
+- Shows workflow progression
+
+**Impact**: All feature workflows, git commit practices
+
+**Alternatives Considered**:
+- One commit per feature (rejected - loses phase visibility)
+- Commit whenever (rejected - inconsistent, easy to forget)
+- No phase commits (rejected - loses audit trail)
+
+**Author**: Chris Maury
+
+**Reversible?**: No - creates necessary audit trail
 
 ---
 
