@@ -260,6 +260,7 @@
 
   "workflow": {
     "enforcePhaseOrder": true,
+    "commitAfterPhaseCompletion": true,
     "requiredPhases": {
       "NEW_FEATURE_MAJOR": [
         "feature-planning",
@@ -277,18 +278,53 @@
         "code-review"
       ]
     },
+    "phaseCommits": {
+      "feature-planning": {
+        "type": "docs",
+        "message": "Add feature planning for {feature}",
+        "includeArtifacts": true,
+        "includePhaseCompliance": true
+      },
+      "design-review": {
+        "type": "docs",
+        "message": "Add design reviews for {feature}",
+        "includeArtifacts": true,
+        "includeReviewSummary": true
+      },
+      "edge-case-analysis": {
+        "type": "docs",
+        "message": "Add edge case analysis for {feature}",
+        "includeArtifacts": true,
+        "includeRiskSummary": true
+      },
+      "test-generation": {
+        "type": "test",
+        "message": "Add tests for {feature}",
+        "includeArtifacts": true,
+        "includeCoverageStats": true
+      },
+      "implementation": {
+        "type": "feat",
+        "message": "Implement {feature}",
+        "includeArtifacts": true,
+        "includeComplianceReport": true
+      }
+    },
     "gates": {
       "design-review": {
         "requires": ["design-doc-complete"],
-        "enables": ["edge-case-analysis", "test-generation"]
+        "enables": ["edge-case-analysis", "test-generation"],
+        "commitRequired": true
       },
       "edge-case-analysis": {
         "requires": ["design-review-complete"],
-        "enables": ["test-generation"]
+        "enables": ["test-generation"],
+        "commitRequired": true
       },
       "test-generation": {
         "requires": ["edge-case-analysis-complete"],
-        "enables": ["implementation"]
+        "enables": ["implementation"],
+        "commitRequired": true
       }
     }
   },

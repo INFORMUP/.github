@@ -219,6 +219,191 @@ ARTIFACTS:
 3. **Link to artifacts** for human review
 4. **Use concise format** (no verbose output)
 5. **Keep repository clean** - use workspace for temporary files
+6. **Commit after each phase completion** - create workflow checkpoints
+
+---
+
+## Phase Completion Commits
+
+### CRITICAL: Commit After Each Phase
+
+**Rule**: When a workflow phase completes, commit the artifacts immediately.
+
+**Why**:
+- Creates clear audit trail
+- Provides rollback points
+- Shows workflow progression in git history
+- Prevents loss of work
+- Makes review easier (one phase per commit)
+
+### Required Commits
+
+**After each of these phases**:
+
+```
+1. Feature Planning Complete
+   Commit: "docs: Add feature planning for {feature}"
+   Files:
+     • docs/PRD-{feature}.md
+     • docs/DESIGN-{feature}.md
+     • docs/TEST-PLAN-{feature}.md
+
+2. Design Review Complete
+   Commit: "docs: Add design reviews for {feature}"
+   Files:
+     • docs/reviews/architecture-{feature}.md
+     • docs/reviews/security-{feature}.md
+     • docs/reviews/cost-{feature}.md (if applicable)
+
+3. Edge Case Analysis Complete
+   Commit: "docs: Add edge case analysis for {feature}"
+   Files:
+     • docs/EDGE-CASE-ANALYSIS-{feature}.md
+
+4. Test Generation Complete
+   Commit: "test: Add tests for {feature}"
+   Files:
+     • All test files generated
+
+5. Implementation Complete
+   Commit: "feat: Implement {feature}"
+   Files:
+     • Source code
+     • Updated tests (if needed)
+
+6. Documentation Updates
+   Commit: "docs: Update documentation for {feature}"
+   Files:
+     • README updates
+     • API docs
+     • CHANGELOG
+```
+
+### Commit Message Format for Phase Completion
+
+```
+<type>: <phase description>
+
+<what was completed in this phase>
+
+🎯 TASK: <TASK_TYPE> | PHASE: <PHASE_NAME> | ENFORCEMENT: <level>
+
+📊 PHASE COMPLIANCE: <XX>/100
+
+PHASE ARTIFACTS:
+  📄 <artifact>: <path>
+  📄 <artifact>: <path>
+
+GATE STATUS: <OPEN|BLOCKED>
+
+<compliance report if relevant>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+### Example Phase Commits
+
+**Planning Phase**:
+```
+docs: Add feature planning for survey-dashboard
+
+Created PRD, design doc, and test plan for survey analytics dashboard.
+
+🎯 TASK: NEW_FEATURE_MAJOR | PHASE: Planning | ENFORCEMENT: strict
+
+📊 PHASE COMPLIANCE: 92/100 ✅
+
+PHASE ARTIFACTS:
+  📄 PRD: docs/PRD-survey-dashboard.md (score: 93/100)
+  📄 Design: docs/DESIGN-survey-dashboard.md (score: 95/100)
+  📄 Test Plan: docs/TEST-PLAN-survey-dashboard.md (score: 88/100)
+
+GATE STATUS: OPEN - Ready for design review
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Design Review Phase**:
+```
+docs: Add design reviews for survey-dashboard
+
+Completed architecture, security, and cost analysis reviews.
+
+🎯 TASK: NEW_FEATURE_MAJOR | PHASE: Design Review | ENFORCEMENT: strict
+
+📊 PHASE COMPLIANCE: 100/100 ✅
+
+PHASE ARTIFACTS:
+  📄 Architecture Review: docs/reviews/architecture-survey-dashboard.md (APPROVED)
+  📄 Security Review: docs/reviews/security-survey-dashboard.md (APPROVED)
+  📄 Cost Analysis: docs/reviews/cost-survey-dashboard.md (APPROVED - $45/month)
+
+REVIEW SUMMARY:
+  • 0 critical issues
+  • 2 recommendations (caching, rate limiting)
+  • Estimated cost: $45/month ✅
+
+GATE STATUS: OPEN - Ready for edge case analysis
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Edge Case Analysis Phase**:
+```
+docs: Add edge case analysis for survey-dashboard
+
+Identified 18 edge cases and failure modes, prioritized P0-P3.
+
+🎯 TASK: NEW_FEATURE_MAJOR | PHASE: Edge Case Analysis | ENFORCEMENT: strict
+
+📊 PHASE COMPLIANCE: 100/100 ✅
+
+PHASE ARTIFACTS:
+  📄 Edge Case Analysis: docs/EDGE-CASE-ANALYSIS-survey-dashboard.md
+
+RISK SUMMARY:
+  • P0 Critical: 4 risks (must test)
+  • P1 High: 6 risks (should test)
+  • P2 Medium: 5 risks (nice to test)
+  • P3 Low: 3 risks (optional)
+
+GATE STATUS: OPEN - Ready for test generation
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+### Enforcement
+
+**When phase completes, Claude MUST**:
+1. Prompt to commit artifacts
+2. Generate commit message with phase completion format
+3. Show gate status (what's next)
+
+**Example**:
+```
+Claude: "✅ Design review complete!
+
+All review artifacts created:
+  📄 docs/reviews/architecture-survey-dashboard.md
+  📄 docs/reviews/security-survey-dashboard.md
+  📄 docs/reviews/cost-survey-dashboard.md
+
+NEXT: Commit these artifacts to mark phase completion.
+
+Suggested commit:
+  git add docs/reviews/
+  git commit -m 'docs: Add design reviews for survey-dashboard...'
+
+Shall I create this commit?"
+```
 
 ---
 
