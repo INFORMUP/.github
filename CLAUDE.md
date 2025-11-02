@@ -34,8 +34,14 @@ The skill provides:
   Security       [XX]/10
   Performance    [XX]/10
 
+PHASE GATES: (for features)
+  [✅|❌] Design Review (architecture, security, cost)
+  [✅|❌] Edge Case Analysis
+  [✅|❌] Test Generation
+
 ARTIFACTS:
   📄 [Doc]: [path]
+  📄 [Review]: [path]
 ```
 
 ---
@@ -55,6 +61,104 @@ ARTIFACTS:
 **Enforcement Level**: medium (set in `.claude-automation-config.json`)
 **Minimum Score**: 80
 **Security Issues**: Always blocking
+
+---
+
+## Workflow Phase Enforcement
+
+### CRITICAL: Follow Required Phase Order
+
+The hybrid model enforces phase order for quality. **You MUST check for required artifacts before proceeding**.
+
+### Required Phases for NEW_FEATURE_MAJOR
+
+```
+1. Feature Planning
+   → PRD, Design, Test Plan created
+   ✅ Proceed when: All docs score 90+
+
+2. Design Review (BLOCKING GATE)
+   → Architecture review artifact
+   → Security review artifact
+   → Cost analysis artifact
+   🚫 CANNOT proceed without ALL review artifacts
+
+3. Edge Case Analysis (BLOCKING GATE)
+   → Edge case analysis document
+   🚫 CANNOT proceed without edge case analysis
+
+4. Test Generation
+   → Uses edge case analysis
+   → All P0 risks must have tests
+
+5. Implementation
+   → Code with tests
+```
+
+### How to Enforce
+
+**Before running test-generator or allowing implementation**:
+
+```
+CHECK REQUIRED ARTIFACTS:
+  [ ] docs/reviews/architecture-{feature}.md exists?
+  [ ] docs/reviews/security-{feature}.md exists?
+  [ ] docs/reviews/cost-{feature}.md exists? (if major feature)
+  [ ] docs/EDGE-CASE-ANALYSIS-{feature}.md exists? (if major feature)
+
+IF ANY MISSING:
+  🚫 BLOCK and show:
+
+  "🚫 PHASE GATE BLOCKED
+
+  Missing required artifacts:
+    ❌ Architecture review: docs/reviews/architecture-{feature}.md
+
+  You must complete design review before proceeding to testing.
+
+  Run: claude code --agent design-review-coordinator
+
+  This will:
+    • Run architecture review
+    • Run security review
+    • Run cost analysis
+    • Create all required review artifacts
+
+  Cannot proceed until all reviews complete."
+```
+
+### Design Review Coordinator
+
+**Use this agent to orchestrate reviews**:
+
+```bash
+# After design doc is created
+claude code --agent design-review-coordinator
+```
+
+**This agent will**:
+1. Check for design doc
+2. Run all required reviews (architecture, security, cost)
+3. Create review artifacts in docs/reviews/
+4. Report status (APPROVED / BLOCKED / APPROVED WITH CONDITIONS)
+5. Only open gate if all reviews pass
+
+**Example output**:
+```
+🎯 DESIGN REVIEW STATUS: survey-dashboard
+
+REVIEWS COMPLETED:
+  ✅ Architecture: APPROVED (docs/reviews/architecture-survey-dashboard.md)
+  ✅ Security: APPROVED (docs/reviews/security-survey-dashboard.md)
+  ✅ Cost: APPROVED (docs/reviews/cost-survey-dashboard.md)
+
+GATE: OPEN - You may proceed to edge case analysis
+
+ARTIFACTS:
+  📄 Architecture: docs/reviews/architecture-survey-dashboard.md
+  📄 Security: docs/reviews/security-survey-dashboard.md
+  📄 Cost: docs/reviews/cost-survey-dashboard.md
+```
 
 ---
 

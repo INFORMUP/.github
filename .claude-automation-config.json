@@ -29,13 +29,45 @@
         "location": "docs/",
         "minimumScore": 90
       },
+      "designReview": {
+        "required": true,
+        "blocking": true,
+        "coordinator": "design-review-coordinator",
+        "reviews": [
+          {
+            "name": "architecture",
+            "agent": "architecture-reviewer",
+            "required": true,
+            "outputLocation": "docs/reviews/architecture-{feature}.md"
+          },
+          {
+            "name": "security",
+            "agent": "security-auditor",
+            "required": true,
+            "outputLocation": "docs/reviews/security-{feature}.md"
+          },
+          {
+            "name": "cost",
+            "agent": "cost-analyzer",
+            "required": true,
+            "outputLocation": "docs/reviews/cost-{feature}.md",
+            "thresholds": {
+              "warning": 100,
+              "critical": 500
+            }
+          }
+        ],
+        "runAfter": ["design-doc-complete"],
+        "runBefore": ["edge-case-analysis", "test-generation"],
+        "blockOnCriticalIssues": true
+      },
       "edgeCaseAnalysis": {
         "required": true,
         "agent": "edge-case-analyzer",
         "minimumRisksIdentified": 10,
         "requireP0Coverage": true,
         "outputLocation": "docs/EDGE-CASE-ANALYSIS-{feature}.md",
-        "runAfter": ["architecture-reviewer", "security-auditor"],
+        "runAfter": ["design-review-complete"],
         "runBefore": ["test-generator"]
       },
       "testing": {
@@ -61,6 +93,27 @@
         "required": ["DESIGN"],
         "location": "design-docs/",
         "minimumScore": 85
+      },
+      "designReview": {
+        "required": true,
+        "blocking": true,
+        "coordinator": "design-review-coordinator",
+        "reviews": [
+          {
+            "name": "architecture",
+            "agent": "architecture-reviewer",
+            "required": true,
+            "outputLocation": "docs/reviews/architecture-{feature}.md"
+          },
+          {
+            "name": "security",
+            "agent": "security-auditor",
+            "required": "if-handles-data",
+            "outputLocation": "docs/reviews/security-{feature}.md"
+          }
+        ],
+        "runAfter": ["design-doc-complete"],
+        "runBefore": ["test-generation"]
       },
       "testing": {
         "minimumCoverage": 80,
@@ -190,18 +243,54 @@
     "available": [
       "workflow-guardrails",
       "feature-planner",
-      "edge-case-analyzer",
-      "code-reviewer",
-      "pr-generator",
+      "design-review-coordinator",
       "architecture-reviewer",
       "security-auditor",
       "cost-analyzer",
+      "edge-case-analyzer",
       "test-generator",
+      "code-reviewer",
+      "pr-generator",
       "local-ci",
       "build-diagnostician",
       "error-investigator",
       "documentation"
     ]
+  },
+
+  "workflow": {
+    "enforcePhaseOrder": true,
+    "requiredPhases": {
+      "NEW_FEATURE_MAJOR": [
+        "feature-planning",
+        "design-review",
+        "edge-case-analysis",
+        "test-generation",
+        "implementation",
+        "code-review"
+      ],
+      "NEW_FEATURE_MINOR": [
+        "feature-planning",
+        "design-review",
+        "test-generation",
+        "implementation",
+        "code-review"
+      ]
+    },
+    "gates": {
+      "design-review": {
+        "requires": ["design-doc-complete"],
+        "enables": ["edge-case-analysis", "test-generation"]
+      },
+      "edge-case-analysis": {
+        "requires": ["design-review-complete"],
+        "enables": ["test-generation"]
+      },
+      "test-generation": {
+        "requires": ["edge-case-analysis-complete"],
+        "enables": ["implementation"]
+      }
+    }
   },
 
   "guardrails": {
