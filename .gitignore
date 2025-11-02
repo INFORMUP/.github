@@ -20,3 +20,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 .tmp/
+
+# Claude Workspace (temporary/intermediate files)
+.claude_workspace/
