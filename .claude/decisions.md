@@ -108,6 +108,38 @@
 
 ---
 
+## 2025-01-31 - Workspace Management for Clean Repositories
+
+**Context**: Need to keep repositories clean by separating temporary/intermediate files from final artifacts.
+
+**Decision**: Add `.claude_workspace/` directory for all temporary files. Claude must use this for drafts, checklists, analysis, and any intermediate work.
+
+**Key Rules**:
+- ALL temporary files go in `.claude_workspace/`
+- Workspace is gitignored (never committed)
+- Final artifacts move from workspace → repository
+- Organized subdirectories: drafts/, analysis/, checklists/, scripts/, notes/
+
+**Rationale**:
+- Prevents repository clutter
+- Clear separation of working vs final files
+- Easy cleanup
+- Prevents accidental commits of temporary files
+- Professional repository structure
+
+**Impact**: All Claude interactions, all file creation workflows
+
+**Alternatives Considered**:
+- Use tmp/ directory (rejected - not descriptive enough)
+- No workspace, just be careful (rejected - error-prone)
+- Commit everything (rejected - clutters git history)
+
+**Author**: Chris Maury
+
+**Reversible?**: No - this is a core organizational principle
+
+---
+
 ## Template for Future Decisions
 
 ```markdown
