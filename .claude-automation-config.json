@@ -261,6 +261,7 @@
   "workflow": {
     "enforcePhaseOrder": true,
     "commitAfterPhaseCompletion": true,
+    "clearContextAfterTaskCompletion": true,
     "requiredPhases": {
       "NEW_FEATURE_MAJOR": [
         "feature-planning",

@@ -229,6 +229,61 @@ Design Doc → Design Review (GATE) → Edge Case Analysis (GATE) → Tests → 
 
 ---
 
+## 2025-01-31 - Context Clearing After Task Completion
+
+**Context**: Need to prevent context bleed between different engineering tasks. Previous task context can influence decisions on new tasks inappropriately.
+
+**Decision**: Prompt user to run `/clear` after completing an engineering task (when merged or ready to merge).
+
+**When to Clear**:
+- Feature fully implemented and merged
+- Bug fix shipped
+- Refactor complete
+- All phases done and PR merged
+- Moving to completely different task
+
+**When NOT to Clear**:
+- Working on related sub-tasks of same feature
+- Continuing same feature across sessions
+- Explicitly building on previous work
+
+**Enforcement**:
+- Claude prompts (doesn't force) after task completion
+- Explains benefits (prevent context bleed)
+- User decides whether to clear
+
+**Prompt Format**:
+```
+✅ TASK COMPLETE: {task}
+
+Run /clear to start fresh on next task.
+
+Benefits:
+  • No context bleed
+  • Clean slate for new decisions
+  • Optimal performance
+```
+
+**Rationale**:
+- Context from Task A can bias decisions on Task B
+- Fresh context ensures independent evaluation
+- Reduces token usage
+- Cleaner decision logs
+- Better task isolation
+
+**Impact**: All task completions, session management
+
+**Alternatives Considered**:
+- Auto-clear (rejected - user may want to continue)
+- Never clear (rejected - context bleed is real issue)
+- Clear after each phase (rejected - too aggressive)
+
+**Author**: Chris Maury
+
+**Reversible?**: Yes - this is a recommendation, not a hard requirement
+
+---
+
 ## Template for Future Decisions
 
 ```markdown

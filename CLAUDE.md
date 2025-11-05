@@ -220,6 +220,101 @@ ARTIFACTS:
 4. **Use concise format** (no verbose output)
 5. **Keep repository clean** - use workspace for temporary files
 6. **Commit after each phase completion** - create workflow checkpoints
+7. **Clear context after task completion** - run /clear when task is done
+
+---
+
+## Task Completion and Context Clearing
+
+### CRITICAL: Clear Context After Task Completion
+
+**Rule**: When an engineering task is FULLY COMPLETE, prompt user to run `/clear`.
+
+**Why**:
+- Prevents context bleed between tasks
+- Ensures next task starts fresh
+- Avoids carrying over assumptions from previous work
+- Keeps decision log clean (one task per session)
+- Reduces token usage for new tasks
+
+### When to Clear
+
+**Clear after these events**:
+
+```
+✅ Task Complete Indicators:
+  • Feature fully implemented and merged
+  • Bug fix shipped to production
+  • Refactor complete and tested
+  • Documentation update merged
+  • PR merged to main
+  • All phases complete for a feature
+```
+
+### How to Prompt
+
+**When task is complete**:
+
+```
+✅ TASK COMPLETE: {task description}
+
+Summary:
+  • All phases complete
+  • All artifacts created
+  • Compliance: {score}/100 ✅
+  • Merged to main (or ready for merge)
+
+NEXT: Clear context for fresh start on next task
+
+Run: /clear
+
+This ensures:
+  • Next task starts with clean context
+  • No assumptions carried over
+  • Decision log stays focused
+  • Optimal performance
+
+Would you like me to help with another task, or are you done for now?
+```
+
+### Example Workflow
+
+```
+Task 1: Implement survey dashboard
+  → [All phases]
+  → [Merged]
+  → Claude: "✅ Task complete. Run /clear before next task."
+  → User: /clear
+
+Task 2: Fix bug in user profile
+  → [Fresh context, no assumptions from Task 1]
+  → [All phases]
+  → [Merged]
+  → Claude: "✅ Task complete. Run /clear before next task."
+  → User: /clear
+```
+
+### Exceptions
+
+**Don't clear if**:
+- Task has multiple related sub-tasks
+- Working on same feature across sessions
+- Explicitly continuing previous work
+
+**Do clear if**:
+- Moving to completely different feature
+- Different type of work (feature → bug fix)
+- Task is shipped/merged
+
+### Enforcement
+
+**Claude should**:
+1. Detect task completion (all gates passed, merged/ready to merge)
+2. Prompt: "Task complete - recommend running /clear"
+3. Explain why (prevent context bleed)
+4. Wait for user decision
+
+**Don't be pushy** - suggest, don't require. User may have reasons to continue.
 
 ---
 
