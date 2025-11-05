@@ -1,22 +1,15 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Post-commit hook: Update documentation in background
-# Part of InformUp Engineering Automation System (Agent-Based)
+# Post-commit hook: Trigger design reviews and documentation updates
+# Part of InformUp Engineering Automation System (Hybrid Model)
 # Version: 2.0.0
 
-# Load config
-CONFIG_FILE=".claude-automation-config.json"
-if [ -f "$CONFIG_FILE" ]; then
-  POST_COMMIT_ENABLED=$(node -p "try { require('./$CONFIG_FILE').triggers.postCommitDocs.enabled } catch(e) { 'false' }")
-else
-  POST_COMMIT_ENABLED="false"
-fi
-
-# Exit early if disabled
-if [ "$POST_COMMIT_ENABLED" != "true" ]; then
-  exit 0
-fi
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
 # Check if Claude is available
 if ! command -v claude > /dev/null 2>&1; then
@@ -25,6 +18,59 @@ fi
 
 # Get files changed in last commit
 CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# ============================================================================
+# PRIORITY 1: Design Review Trigger (BLOCKING - Interactive)
+# ============================================================================
+# UNIVERSAL RULE: ANY design doc commit triggers design reviews
+
+DESIGN_DOC_COMMITTED=false
+
+# Check for design documents
+if echo "$CHANGED_FILES" | grep -qE "docs/DESIGN-.*\.md|docs/PRD-.*\.md|design-docs/.*\.md"; then
+  DESIGN_DOC_COMMITTED=true
+fi
+
+if [ "$DESIGN_DOC_COMMITTED" = "true" ]; then
+  echo ""
+  echo "📋 ${BLUE}Design document detected in commit${NC}"
+  echo ""
+  echo "Running design review coordinator to create review artifacts..."
+  echo "(architecture, security, cost analysis)"
+  echo ""
+
+  # Invoke Design Review Coordinator (BLOCKING - user must interact)
+  # This runs architecture-reviewer, security-auditor, and cost-analyzer
+  # Creates review artifacts in docs/reviews/
+  claude -p "A design document was just committed. Use the design-review-coordinator agent to orchestrate all required design reviews (architecture, security, cost). This is a BLOCKING gate - reviews must complete before proceeding to testing or implementation."
+
+  echo ""
+  echo "${GREEN}✓${NC} Design reviews complete!"
+  echo ""
+  echo "Review artifacts created in ${BLUE}docs/reviews/${NC}"
+  echo ""
+  echo "Next phase: Edge case analysis (if major feature) or test generation"
+  echo ""
+
+  exit 0
+fi
+
+# ============================================================================
+# PRIORITY 2: Documentation Update (BACKGROUND - Non-blocking)
+# ============================================================================
+
+# Load config for doc updates
+CONFIG_FILE=".claude-automation-config.json"
+if [ -f "$CONFIG_FILE" ]; then
+  POST_COMMIT_DOCS_ENABLED=$(node -p "try { require('./$CONFIG_FILE').triggers.postCommitDocs.enabled } catch(e) { 'false' }")
+else
+  POST_COMMIT_DOCS_ENABLED="false"
+fi
+
+# Exit early if disabled
+if [ "$POST_COMMIT_DOCS_ENABLED" != "true" ]; then
+  exit 0
+fi
 
 # Check if any source files were changed
 SRC_FILES_CHANGED=false
@@ -41,7 +87,6 @@ echo ""
 echo "📚 Updating documentation in background..."
 
 # Invoke Documentation Agent in background (non-blocking)
-# The agent will update inline docs, README, and API documentation
 claude -p "use the documentation agent to update relevant docs" &
 disown
 
