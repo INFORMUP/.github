@@ -284,6 +284,125 @@ Benefits:
 
 ---
 
+## 2025-01-31 - Solution Evaluation Process (No Quick Fixes)
+
+**Context**: Need to prevent "quick fix" mentality and ensure proper solution evaluation considering architecture and long-term maintainability.
+
+**Decision**: Require enumeration and evaluation of 3-5 possible approaches before implementing any solution. Never choose "quick fix."
+
+**Process**:
+1. Enumerate 3-5 possible solutions
+2. Evaluate against: goal alignment, architecture consistency, maintainability, volunteer-friendliness, mission alignment
+3. Present options to user with tradeoffs
+4. User chooses (or confirms recommendation)
+
+**Evaluation Criteria**:
+- Application goal alignment
+- Architecture consistency
+- Long-term maintainability
+- Volunteer contributor accessibility
+- InformUp mission alignment (civic engagement)
+
+**Never Do**:
+- Choose "quick fix" or hack
+- Implement without evaluating alternatives
+- Skip evaluation for "simple" problems
+- Assume first solution is best
+
+**Always Do**:
+- Consider multiple approaches
+- Evaluate against architecture
+- Think long-term
+- Choose proper solution over fast solution
+
+**Rationale**:
+- Quick fixes create technical debt
+- Proper evaluation prevents architectural drift
+- Multiple options reveal better solutions
+- User involvement ensures buy-in
+- Long-term thinking supports nonprofit sustainability
+
+**Impact**: All solution design, all implementation decisions
+
+**Alternatives Considered**:
+- Trust developer judgment (rejected - inconsistent)
+- Only for complex problems (rejected - simple problems need good solutions too)
+- AI chooses best (rejected - user should decide)
+
+**Author**: Chris Maury
+
+**Reversible?**: No - this is a core engineering principle
+
+---
+
+## 2025-01-31 - Iterative/Evolutionary Design Philosophy
+
+**Context**: Need to prevent waterfall approach where entire system is designed and built before validation. Leads to wasted work and brittle systems.
+
+**Decision**: Enforce iterative, evolutionary design. Start with atomic components, validate they work, then expand incrementally.
+
+**Approach**:
+1. Build minimal atomic component
+2. Confirm it works (test + validate)
+3. Add next piece
+4. Confirm it works
+5. Integrate pieces
+6. Repeat until complete
+
+**Principles**:
+- Start atomic (smallest useful piece)
+- Validate early (test each piece)
+- Commit often (each atomic piece)
+- Trust evolution (system evolves organically)
+- No big bang (never build everything then test)
+
+**Never Do**:
+- Build entire feature then test
+- Design whole system upfront
+- Wait for "complete" before validating
+- Big bang integration
+
+**Always Do**:
+- Decompose into atomic components
+- Build smallest piece first
+- Validate before adding more
+- Commit working increments
+- Trust iterative process
+
+**Example**:
+```
+Survey Dashboard (Iterative):
+  1. Data fetching → Test → Commit ✅
+  2. Basic chart → Test → Commit ✅
+  3. Filtering → Test → Commit ✅
+  4. Export → Test → Commit ✅
+  5. Polish → Test → Commit ✅
+
+NOT:
+  Design all → Build all → Test all → Ship ❌
+```
+
+**Rationale**:
+- Catch issues early (cheaper to fix)
+- Validate assumptions incrementally
+- Easier to change direction if needed
+- Reduces waste (don't build wrong thing)
+- Better for volunteers (smaller, understandable pieces)
+- Supports InformUp's resource constraints
+
+**Impact**: All feature implementation, all coding approaches
+
+**Alternatives Considered**:
+- Waterfall (design all upfront) - rejected, brittle and wasteful
+- Ad-hoc (no structure) - rejected, inconsistent quality
+- Complete TDD (test ALL then code ALL) - rejected, still too big bang
+
+**Author**: Chris Maury
+
+**Reversible?**: No - this is a core engineering philosophy
+
+---
+
 ## Template for Future Decisions
 
 ```markdown
